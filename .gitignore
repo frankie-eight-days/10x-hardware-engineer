@@ -43,3 +43,9 @@ Thumbs.db
 .idea/
 *.swp
 references/
+datasheets/parsed/
+boards/*/hardware/build/
+boards/*/hardware/.ato/
+boards/*/hardware/layouts/*/backups/
+boards/*/hardware/parts/*.pdf
+mcp/datasheet-server/.venv/
