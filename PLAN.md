@@ -28,6 +28,43 @@ Be the first public end-to-end open-stack agent flow that ships a DDR-class Linu
 ### USB-UART: CH340N onboard
 **Why:** JLC Basic part, SOP-8, ~$0.30. Beats requiring a USB-TTL dongle. Backup: 4-pin 0.1" header on the same UART for native access.
 
+### Power input: USB-C PD sink + bench supply, OR'd
+
+**Two-source manual-select OR** — never both connected simultaneously, so two Schottkys are safe (no current-hogging concern).
+
+```
+USB-C ── HUSB238 (5V fixed) ── SS54 ─┐
+                                     ├── 5V_BOARD → discrete buck/LDO chain
+Bench ── P-FET (rev-pol) ──────── SS54 ─┘
+```
+
+USB-OTG VBUS is *not* part of this OR — host mode = we source it; device mode = it powers us, others off.
+
+| Role | Pick | LCSC | JLC | Notes |
+|---|---|---|---|---|
+| USB-C 16-pin USB2.0 | Korean Hroparts TYPE-C-31-M-17 | C2765186 | Basic | Canonical JLC-friendly |
+| USB-C PD sink (5V R-strap) | Hynetek HUSB238 | C2829277 | Extended ($3 fee) | No Basic alternative; CC1/CC2 5.1kΩ pulldowns mandatory |
+| OR Schottky ×2, 5A | SS54 | C22452 | Basic | ~0.55V drop @ 5A; bucks see ~4.5V min, fine |
+| P-FET reverse-pol | AO3401A | C15127 | Basic | $0.02, Rds(on) 50 mΩ, SOT-23 |
+| Bench terminal block, 5mm 10A | Ningbo Kangnex EK500V-5.0-02P | C8270 | Basic | 2-pin green screw |
+
+**Verify all C-numbers and JLC status on jlcpcb.com/parts before BOM submission** — research agent's numbers come from training data, not live verification.
+
+### Discrete buck/LDO power tree from 5V_BOARD
+
+PMIC choice: **none.** Discrete chain. Bench-supply spec (32V/3.2A) gives unlimited headroom; even if we go to a higher input later we don't change the topology.
+
+| Rail | V | Approx I | Stage | Candidate | atopile pkg |
+|---|---|---|---|---|---|
+| `VDD_ARM_SOC` | 1.4V | ~600 mA | buck from 5V | TPS62933 / TPS563201 | `atopile/ti-tps563201` |
+| `NVCC_DRAM` | 1.35V (DDR3L) | ~400 mA | buck | TPS563201 | `atopile/ti-tps563201` |
+| `VTT_DRAM` | 0.675V | tracked | sink/source LDO | TPS51200 | `ato create part` |
+| `VDD_3V3` | 3.3V | ~1 A | buck | TPS54560x | `atopile/ti-tps54560x` |
+| `VDD_1V8` | 1.8V | ~300 mA | LDO from 3V3 | TLV75901 | `atopile/ti-tlv75901` |
+| `VDD_SNVS` | 3V | ~1 mA | LDO + coin cell | LDK220 | `atopile/st-ldk220` |
+
+**Sequencing:** i.MX 6ULL requires VDD_SOC_IN before VDD_ARM_IN before NVCC_DRAM (RM ch. "Power Management" / AN5187). Open-drain power-good daisy-chain across regulators is the discrete trick — each stage's PG enables the next.
+
 ### Boot: SD primary + USB serial-download recovery
 **Why:** i.MX 6ULL boot ROM supports USB serial download via NXP `uuu` / `imx_usb_loader` — you can recover a bricked board over the same USB-OTG port without ever needing JTAG. SD is the working boot medium; eMMC/QSPI is a stretch goal.
 

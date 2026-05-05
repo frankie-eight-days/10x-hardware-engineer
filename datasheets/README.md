@@ -12,11 +12,11 @@ PDFs are git-ignored (too big). Fetch with `scripts/fetch_datasheets.sh` (TODO) 
 | `raw/ref-bundle/NT5CC256M16{DP,EP}.pdf` | — | bundled | Nanya 4 Gb DDR3 alternates. |
 | `raw/emmc-MKEMB008GT1E.pdf` | — | bundled | 8 GB eMMC (stretch goal). |
 | `raw/imx6ull-core-board-reference-schematic.pdf` | — | bundled | Full schematic of `yu-mingfu/IMX6ULL_Core_Board` — DDR3 byte-lane wiring, power tree, eMMC, connector. **Crib heavily.** |
+| `raw/imx6ull-reference-manual.pdf` | **3899** | whqee.cn mirror | NXP **IMX6ULLRM Rev 0** (Sep 2016). Full register-level manual. Authoritative. |
+| `raw/imx6ull-hardware-developer-guide.pdf` | 53 | zlgmcu.com mirror | NXP **IMX6ULLHDG Rev 0** (Aug 2016). DDR3 + USB + Ethernet routing rules. |
 
-## Gated behind NXP login (TODO when user is around)
+## Still pending
 
-- **i.MX 6ULL Reference Manual (`IMX6ULLRM.pdf`)** — ~5000 pages, register-level. Critical for firmware bring-up. Get from https://www.nxp.com/products/i.MX6ULL → Documentation → Reference Manual after sign-in.
-- **i.MX 6ULL Hardware Developer's Guide (`IMX6ULLHDG.pdf`)** — DDR3/USB/Ethernet routing rules, layout recommendations. Different (longer) doc than AN5121.
 - **AN5198** — i.MX 6UL/6ULL DDR Calibration.
 - **AN12042** — i.MX 6UL/6ULL DDR3L Layout Guidelines.
 - **AN5187** — Power Consumption.
