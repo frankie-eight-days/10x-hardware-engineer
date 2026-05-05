@@ -1,12 +1,12 @@
-requires-atopile: "0.15.7"
+requires-atopile: 0.15.7
 
 paths:
-  src: ./
+  src: ./src
   layout: ./layouts
 
 builds:
   default:
-    entry: main.ato:Board
+    entry: src/main.ato:Board
 
 # This metadata is only required for publishing
 # Uncomment it and fill out the fields to publish your package
@@ -20,3 +20,7 @@ builds:
 #   summary: # fill me!
 #   license: MIT license
 #   homepage: # fill me!
+dependencies:
+- type: registry
+  identifier: atopile/microchip-lan8742a
+  release: 0.3.0

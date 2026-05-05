@@ -1,0 +1,33 @@
+"""i.MX 6ULL Linux dev board — top-level entry."""
+
+#pragma experiment("BRIDGE_CONNECT")
+#pragma experiment("FOR_LOOP")
+
+import ElectricPower
+import ElectricLogic
+
+from "network.ato" import Network
+from "atopile/microchip-lan8742a/microchip-lan8742a.ato" import RMII
+from "atopile/microchip-lan8742a/microchip-lan8742a.ato" import MDIO
+
+
+module Board:
+    """i.MX 6ULL dev board v0."""
+
+    # Top-level rails the rest of the design will tap into.
+    power_5v  = new ElectricPower
+    power_3v3 = new ElectricPower
+
+    assert power_5v.voltage  within 4.75V to 5.25V
+    assert power_3v3.voltage within 3.15V to 3.45V
+
+    # ---- Ethernet ----
+    network = new Network
+    rmii_to_mpu = new RMII
+    mdio_to_mpu = new MDIO
+    enet_reset_from_mpu = new ElectricLogic   # MPU drives, active low
+
+    network.power_3v3 ~ power_3v3
+    network.rmii  ~ rmii_to_mpu     # to ENET1 on MPU
+    network.mdio  ~ mdio_to_mpu     # to MPU MDIO
+    network.reset ~ enet_reset_from_mpu

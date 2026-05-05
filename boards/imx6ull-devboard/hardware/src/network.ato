@@ -1,0 +1,101 @@
+"""Ethernet subsystem: LAN8742A PHY + HanRun HR911105A RJ45 with magnetics.
+
+Reviewer agent (2026-05-04) caught critical bugs in the upstream atopile package
+(`atopile/microchip-lan8742a@0.3.0`). Fixes added at the wrapper level:
+  - nINTSEL strap: explicit 4.75kΩ pulldown on LED2_nINT_nPME_nINTSEL pin
+    so the PHY drives 50 MHz REF_CLK to the MAC at boot, regardless of how
+    the front-panel LED ends up wired. (Microchip Schematic Checklist
+    SC471240 §8 — "nINTSEL must be level-zero during POR.")
+  - MDI termination: 4× 49.9Ω 1% from TXP/TXN/RXP/RXN to power_3v3 — required
+    for the current-mode line driver to develop the right amplitude.
+    (Same checklist Figs. 1–2.)
+  - MDC pull-up dropped: MDC is push-pull MAC-driven, doesn't need it.
+
+Still open (need follow-up):
+  - Crystal load caps: upstream package sets 18pF; correct value is 27–30pF
+    given typical 3–6 pF/leg PCB stray (CL=18pF parallel-resonance math).
+    Cannot override in wrapper — needs upstream fork or PR.
+  - HR911105A magjack with Bob Smith network + chassis Y-cap + ESD diodes.
+  - Ferrite-bead VDDA split + RXCT 22nF cap (Microchip Checklist Fig. 2).
+  - LED1/LED2 wiring polarity (drives REGOFF strap behaviour) — handled in
+    Debug subsystem when we wire front-panel status LEDs.
+
+Datasheet refs:
+  - Microchip LAN8742A datasheet
+  - Microchip "LAN8742A QFN Schematic Checklist" SC471240
+  - HanRun HR911105A datasheet
+  - i.MX 6ULL Reference Manual ENET chapter
+"""
+
+#pragma experiment("BRIDGE_CONNECT")
+#pragma experiment("FOR_LOOP")
+
+import ElectricPower
+import ElectricLogic
+import Capacitor
+import Resistor
+
+from "atopile/microchip-lan8742a/microchip-lan8742a.ato" import Microchip_LAN8742A
+from "atopile/microchip-lan8742a/microchip-lan8742a.ato" import RMII
+from "atopile/microchip-lan8742a/microchip-lan8742a.ato" import MDIO
+
+
+module Network:
+    """10/100 Ethernet: PHY wrapper with strap fix + MDI termination + MDIO pull-up."""
+
+    # External interfaces consumed by Board
+    power_3v3 = new ElectricPower
+    power_3v3.required = True
+    rmii = new RMII
+    mdio = new MDIO
+    mdio.required = True
+    reset = new ElectricLogic    # MPU-driven, active-low
+
+    # PHY block
+    phy = new Microchip_LAN8742A
+
+    power_3v3 ~ phy.power_3v3
+    rmii ~ phy.rmii
+    mdio ~ phy.mdio
+    reset ~ phy._reset
+
+    # ----- Strap fix: nINTSEL pulldown -----
+    # Pin 2 (LED2_nINT_nPME_nINTSEL) has a weak internal pull-UP. Without an external
+    # pulldown the PHY latches nINTSEL=1 at reset, selecting nINT mode and disabling
+    # the 50 MHz REF_CLK output that the MAC needs. 4.75kΩ matches Microchip EVB.
+    nintsel_pulldown = new Resistor
+    nintsel_pulldown.resistance = 4.75kohm +/- 1%
+    nintsel_pulldown.package = "0402"
+    phy.package.LED2_nINT_nPME_nINTSEL ~> nintsel_pulldown ~> power_3v3.lv
+
+    # ----- MDI termination -----
+    # LAN8742A drives MDI in current mode; Microchip Checklist requires 49.9Ω 1%
+    # pull-ups to VDDA on TXP/TXN/RXP/RXN. Without these, line amplitude is wrong
+    # and the link partner can't decode 100BASE-TX MLT-3.
+    # Note: ideally these tie to a ferrite-isolated VDDA rail (TODO upstream fix).
+    # Tied to power_3v3 directly here — acceptable for prototype.
+    rterm_txp = new Resistor; rterm_txp.resistance = 49.9ohm +/- 1%; rterm_txp.package = "0402"
+    rterm_txn = new Resistor; rterm_txn.resistance = 49.9ohm +/- 1%; rterm_txn.package = "0402"
+    rterm_rxp = new Resistor; rterm_rxp.resistance = 49.9ohm +/- 1%; rterm_rxp.package = "0402"
+    rterm_rxn = new Resistor; rterm_rxn.resistance = 49.9ohm +/- 1%; rterm_rxn.package = "0402"
+    phy.package.TXP ~> rterm_txp ~> power_3v3.hv
+    phy.package.TXN ~> rterm_txn ~> power_3v3.hv
+    phy.package.RXP ~> rterm_rxp ~> power_3v3.hv
+    phy.package.RXN ~> rterm_rxn ~> power_3v3.hv
+
+    # ----- MDIO pull-up (1.5kΩ to 3V3) -----
+    # IEEE 802.3 SMI is open-drain. Single 1.5kΩ shared by all PHYs on the bus.
+    mdio_pullup = new Resistor
+    mdio_pullup.resistance = 1.5kohm +/- 5%
+    mdio_pullup.package = "0402"
+    mdio.mdio.line ~> mdio_pullup ~> power_3v3.hv
+
+    # MDC is push-pull MAC-driven; no pull-up needed.
+
+    # TODO: HR911105A magjack subsystem
+    #   - Magnetics center taps (TXCT, RXCT) commoned via 75Ω resistors
+    #   - Unused-pair pins (4-5, 7-8) shorted, 75Ω to common
+    #   - Common node → 1nF/2kV Y-cap → chassis ground
+    #   - Bezel LEDs from phy.ethernet.led_link / led_speed (cathode-to-pin
+    #     wiring) — also fixes REGOFF strap polarity for free
+    #   - Low-cap TVS array on cable side (e.g. NXP PESD3V3L4UF)
