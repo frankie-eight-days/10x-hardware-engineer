@@ -1,0 +1,436 @@
+"""i.MX 6ULL MPU module.
+
+Wraps the 289-ball MAPBGA, handles all rails + decoupling + crystals + DRAM_VREF
++ ZQPAD, exposes peripheral buses to the rest of the design.
+
+IOMUXC pinmux for SAI2/MDIO/I²C is firmware (device-tree) decision; the
+schematic just connects to the ball labelled by the dedicated function. For
+muxed-only peripherals we route to GPIO1_* or LCD_DATA*/CSI_DATA* etc balls
+per the canonical i.MX 6ULL EVK assignment (TODO: confirm with research).
+"""
+
+#pragma experiment("BRIDGE_CONNECT")
+#pragma experiment("FOR_LOOP")
+
+import ElectricPower
+import ElectricLogic
+import I2S
+import UART_Base
+import JTAG
+import DifferentialPair
+import Capacitor
+import Resistor
+import Crystal
+
+from "atopile/microchip-lan8742a/microchip-lan8742a.ato" import RMII
+from "atopile/microchip-lan8742a/microchip-lan8742a.ato" import MDIO
+from "parts/NXP_Semicon_MCIMX6Y2CVM08AB/NXP_Semicon_MCIMX6Y2CVM08AB.ato" import NXP_Semicon_MCIMX6Y2CVM08AB_package
+
+
+# ----- DDR3 bus interface (custom; not in stdlib) -----
+interface DDR3Bus:
+    """16-bit DDR3 bus matching the i.MX 6ULL MMDC interface. Single-rank."""
+    addr   = new ElectricLogic[16]    # DRAM_ADDR[15:0]
+    data   = new ElectricLogic[16]    # DRAM_DATA[15:0]
+    ba     = new ElectricLogic[3]     # DRAM_SDBA[2:0]
+    dqm    = new ElectricLogic[2]     # DRAM_DQM[1:0]
+    dqs_p  = new ElectricLogic[2]     # DRAM_SDQS[1:0]_P
+    dqs_n  = new ElectricLogic[2]     # DRAM_SDQS[1:0]_N
+    sdck_p = new ElectricLogic        # DRAM_SDCLK0_P
+    sdck_n = new ElectricLogic        # DRAM_SDCLK0_N
+    sdcke  = new ElectricLogic        # DRAM_SDCKE0
+    cs_b   = new ElectricLogic        # DRAM_CS0_B
+    odt    = new ElectricLogic        # DRAM_ODT0
+    ras_b  = new ElectricLogic        # DRAM_RAS_B
+    cas_b  = new ElectricLogic        # DRAM_CAS_B
+    we_b   = new ElectricLogic        # DRAM_SDWE_B
+    reset_b = new ElectricLogic       # DRAM_RESET
+
+
+module MPU:
+    """i.MX 6ULL Cortex-A7 application processor."""
+
+    # ---- External rails ----
+    power_3v3     = new ElectricPower
+    power_1v4_arm = new ElectricPower
+    power_1v4_soc = new ElectricPower
+    power_1v35    = new ElectricPower
+    power_snvs    = new ElectricPower
+    power_3v3.required     = True
+    power_1v4_arm.required = True
+    power_1v4_soc.required = True
+    power_1v35.required    = True
+    power_snvs.required    = True
+
+    # ---- Exposed buses ----
+    # NOTE: pinmux choices verified 2026-05-04 against:
+    #   - IMX6ULLIEC datasheet Tables 82, 94, 95
+    #   - Linux mainline imx6ul-pinfunc.h
+    #   - imx6ul-14x14-evk.dtsi
+    # SAI3 is used instead of SAI2 because SAI2 only muxes to JTAG balls
+    # or SD1 balls — using SAI2 would kill JTAG or USDHC1.
+    ddr3        = new DDR3Bus
+    rmii        = new RMII
+    mdio        = new MDIO
+    enet_reset  = new ElectricLogic
+    usdhc1_cmd  = new ElectricLogic
+    usdhc1_clk  = new ElectricLogic
+    usdhc1_dat  = new ElectricLogic[4]
+    sd_cd       = new ElectricLogic
+    uart2       = new UART_Base           # to CH340N + TTL header (NOT UART1 — boot SDP)
+    sai3        = new I2S                 # SAI3 (NOT SAI2 — see note); to MAX98357A
+    usb_otg1    = new DifferentialPair    # D+/D- to USB-C #2
+    usb_otg1_vbus_sense = new ElectricLogic
+    usb_otg1_id = new ElectricLogic
+    jtag        = new JTAG
+    reset       = new ElectricLogic     # POR_B
+    heartbeat   = new ElectricLogic
+    boot_mode0  = new ElectricLogic
+    boot_mode1  = new ElectricLogic
+
+    # ---- Package ----
+    package = new NXP_Semicon_MCIMX6Y2CVM08AB_package
+
+    # ============= POWER CONNECTIONS =============
+    # GND (VSS)
+    package.VSS ~ power_3v3.lv
+
+    # 3V3 rail consumers (datasheet §3.1)
+    package.VDD_HIGH_IN     ~ power_3v3.hv
+    package.NVCC_GPIO       ~ power_3v3.hv
+    package.NVCC_NAND       ~ power_3v3.hv
+    package.NVCC_LCD        ~ power_3v3.hv
+    package.NVCC_CSI        ~ power_3v3.hv
+    package.NVCC_ENET       ~ power_3v3.hv
+    package.NVCC_SD1        ~ power_3v3.hv
+    package.NVCC_UART       ~ power_3v3.hv
+    package.NVCC_PLL        ~ power_3v3.hv
+    package.VDDA_ADC_3P3    ~ power_3v3.hv
+    package.ADC_VREFH       ~ power_3v3.hv
+
+    # Cortex-A7 core + SoC supplies (1.4V from buck)
+    package.VDD_ARM_CAP     ~ power_1v4_arm.hv     # multi-pin, all common
+    package.VDD_SOC_CAP     ~ power_1v4_soc.hv
+    # NOTE: VDD_ARM_IN / VDD_SOC_IN are NOT exposed as separate signals in this
+    # auto-gen; the chip routes them internally and exposes only VDD_*_CAP.
+    # The external 1V4 rails feed directly through these CAP pins.
+
+    # DDR3L IO (1.35V from buck)
+    package.NVCC_DRAM       ~ power_1v35.hv
+
+    # SNVS (RTC backup, 3V from LDK220 + coin cell)
+    package.VDD_SNVS_IN     ~ power_snvs.hv
+
+    # Internal LDO output caps — 1µF each
+    cap_ud_high = new Capacitor; cap_ud_high.capacitance = 1uF +/- 20%; cap_ud_high.package = "0402"
+    cap_ud_snvs = new Capacitor; cap_ud_snvs.capacitance = 1uF +/- 20%; cap_ud_snvs.package = "0402"
+    cap_ud_usb  = new Capacitor; cap_ud_usb.capacitance  = 1uF +/- 20%; cap_ud_usb.package  = "0402"
+    cap_ud_dram = new Capacitor; cap_ud_dram.capacitance = 1uF +/- 20%; cap_ud_dram.package = "0402"
+    package.VDD_HIGH_CAP  ~> cap_ud_high ~> power_3v3.lv
+    package.VDD_SNVS_CAP  ~> cap_ud_snvs ~> power_3v3.lv
+    package.VDD_USB_CAP   ~> cap_ud_usb  ~> power_3v3.lv
+    package.NVCC_DRAM_2P5 ~> cap_ud_dram ~> power_3v3.lv
+
+    # ============= DECOUPLING (rail-by-rail) =============
+    # Per HDG §"Power Decoupling": 100nF X7R 0402 within 5mm of each ball;
+    # bulk per rail. Counts approximate the recommended ~1 cap per power pin.
+
+    # 3V3 rail: 8 NVCC_* + VDD_HIGH_IN + 2 ADC pins ≈ 11 caps + 1 bulk
+    decap_3v3 = new Capacitor[11]
+    for c in decap_3v3:
+        c.capacitance = 100nF +/- 20%
+        c.package = "0402"
+        power_3v3.hv ~> c ~> power_3v3.lv
+    bulk_3v3 = new Capacitor; bulk_3v3.capacitance = 10uF +/- 20%; bulk_3v3.package = "0805"
+    power_3v3.hv ~> bulk_3v3 ~> power_3v3.lv
+
+    # 1V4 ARM rail: 4× VDD_ARM_CAP balls
+    decap_arm = new Capacitor[4]
+    for c in decap_arm:
+        c.capacitance = 100nF +/- 20%
+        c.package = "0402"
+        power_1v4_arm.hv ~> c ~> power_1v4_arm.lv
+    bulk_arm = new Capacitor; bulk_arm.capacitance = 10uF +/- 20%; bulk_arm.package = "0805"
+    power_1v4_arm.hv ~> bulk_arm ~> power_1v4_arm.lv
+
+    # 1V4 SOC rail
+    decap_soc = new Capacitor[2]
+    for c in decap_soc:
+        c.capacitance = 100nF +/- 20%
+        c.package = "0402"
+        power_1v4_soc.hv ~> c ~> power_1v4_soc.lv
+    bulk_soc = new Capacitor; bulk_soc.capacitance = 10uF +/- 20%; bulk_soc.package = "0805"
+    power_1v4_soc.hv ~> bulk_soc ~> power_1v4_soc.lv
+
+    # 1V35 DRAM IO: 6× NVCC_DRAM balls
+    decap_dram = new Capacitor[6]
+    for c in decap_dram:
+        c.capacitance = 100nF +/- 20%
+        c.package = "0402"
+        power_1v35.hv ~> c ~> power_1v35.lv
+    bulk_dram = new Capacitor; bulk_dram.capacitance = 22uF +/- 20%; bulk_dram.package = "0805"
+    power_1v35.hv ~> bulk_dram ~> power_1v35.lv
+
+    # SNVS
+    decap_snvs = new Capacitor; decap_snvs.capacitance = 100nF +/- 20%; decap_snvs.package = "0402"
+    bulk_snvs  = new Capacitor; bulk_snvs.capacitance  = 1uF   +/- 20%; bulk_snvs.package  = "0402"
+    power_snvs.hv ~> decap_snvs ~> power_snvs.lv
+    power_snvs.hv ~> bulk_snvs  ~> power_snvs.lv
+
+    # ============= DRAM_VREF + DRAM_ZQPAD =============
+    # VREF = NVCC_DRAM/2 via 1kΩ 0.1% divider per datasheet
+    r_vref_top = new Resistor
+    r_vref_top.resistance = 1kohm +/- 1%
+    r_vref_top.package = "0402"
+    r_vref_bot = new Resistor
+    r_vref_bot.resistance = 1kohm +/- 1%
+    r_vref_bot.package = "0402"
+    power_1v35.hv ~> r_vref_top ~> package.DRAM_VREF
+    package.DRAM_VREF ~> r_vref_bot ~> power_1v35.lv
+    cap_vref_hf = new Capacitor; cap_vref_hf.capacitance = 100nF +/- 20%; cap_vref_hf.package = "0402"
+    cap_vref_lf = new Capacitor; cap_vref_lf.capacitance = 10nF +/- 20%; cap_vref_lf.package = "0402"
+    package.DRAM_VREF ~> cap_vref_hf ~> power_1v35.lv
+    package.DRAM_VREF ~> cap_vref_lf ~> power_1v35.lv
+
+    # ZQ calibration: 240Ω 1% to GND
+    r_zq = new Resistor
+    r_zq.resistance = 240ohm +/- 1%
+    r_zq.package = "0402"
+    package.DRAM_ZQPAD ~> r_zq ~> power_1v35.lv
+
+    # ============= ONOFF strap (always-on) =============
+    # 10kΩ pull-up to VDD_SNVS_IN (NOT 3V3 — ONOFF is SNVS-domain). Datasheet §"ONOFF".
+    r_onoff = new Resistor
+    r_onoff.resistance = 10kohm +/- 5%
+    r_onoff.package = "0402"
+    package.ONOFF ~> r_onoff ~> power_snvs.hv
+
+    # ============= TEST_MODE = GND via 1kΩ (mandatory, RM §"Special Signal") =============
+    r_testmode = new Resistor
+    r_testmode.resistance = 1kohm +/- 5%
+    r_testmode.package = "0402"
+    package.TEST_MODE ~> r_testmode ~> power_3v3.lv
+
+    # ============= POR_B reset =============
+    # POR_B is SNVS-domain. 10kΩ pull-up to VDD_SNVS_IN per datasheet.
+    # Reset line itself is shared with Debug subsystem (button + RC).
+    package.POR_B ~ reset.line
+    reset.reference ~ power_snvs   # POR_B input expects SNVS-level signal
+    r_porb_pu = new Resistor
+    r_porb_pu.resistance = 10kohm +/- 5%
+    r_porb_pu.package = "0402"
+    package.POR_B ~> r_porb_pu ~> power_snvs.hv
+
+    # ============= JTAG_MOD = GND via 4.7kΩ (RM §59 Secure JTAG, normal mode) =============
+    r_jtagmod = new Resistor
+    r_jtagmod.resistance = 4.7kohm +/- 5%
+    r_jtagmod.package = "0402"
+    package.JTAG_MOD ~> r_jtagmod ~> power_3v3.lv
+
+    # ============= Crystals =============
+    # 24 MHz main system clock — Crystal stdlib + 22pF load caps
+    # Picker chooses a real part with ≥50ppm accuracy; we just specify nominal.
+    xtal_main = new Crystal
+    xtal_main.frequency = 24MHz +/- 1%
+    xtal_main.load_capacitance = 12pF +/- 20%
+    xtal_main.unnamed[0] ~ package.XTALI
+    xtal_main.unnamed[1] ~ package.XTALO
+    xtal_main.gnd ~ power_3v3.lv
+    cap_xtal_a = new Capacitor; cap_xtal_a.capacitance = 22pF +/- 5%; cap_xtal_a.package = "0402"
+    cap_xtal_b = new Capacitor; cap_xtal_b.capacitance = 22pF +/- 5%; cap_xtal_b.package = "0402"
+    package.XTALI ~> cap_xtal_a ~> power_3v3.lv
+    package.XTALO ~> cap_xtal_b ~> power_3v3.lv
+
+    # 32.768 kHz RTC crystal — internal load caps in SNVS domain per HDG
+    xtal_rtc = new Crystal
+    xtal_rtc.frequency = 32.768kHz +/- 1%
+    xtal_rtc.load_capacitance = 12.5pF +/- 20%
+    xtal_rtc.unnamed[0] ~ package.RTC_XTALI
+    xtal_rtc.unnamed[1] ~ package.RTC_XTALO
+    xtal_rtc.gnd ~ power_3v3.lv
+
+    # ============= DDR3 bus mapping (16-bit single-chip) =============
+    package.DRAM_ADDR00 ~ ddr3.addr[0].line; package.DRAM_ADDR01 ~ ddr3.addr[1].line
+    package.DRAM_ADDR02 ~ ddr3.addr[2].line; package.DRAM_ADDR03 ~ ddr3.addr[3].line
+    package.DRAM_ADDR04 ~ ddr3.addr[4].line; package.DRAM_ADDR05 ~ ddr3.addr[5].line
+    package.DRAM_ADDR06 ~ ddr3.addr[6].line; package.DRAM_ADDR07 ~ ddr3.addr[7].line
+    package.DRAM_ADDR08 ~ ddr3.addr[8].line; package.DRAM_ADDR09 ~ ddr3.addr[9].line
+    package.DRAM_ADDR10 ~ ddr3.addr[10].line; package.DRAM_ADDR11 ~ ddr3.addr[11].line
+    package.DRAM_ADDR12 ~ ddr3.addr[12].line; package.DRAM_ADDR13 ~ ddr3.addr[13].line
+    package.DRAM_ADDR14 ~ ddr3.addr[14].line; package.DRAM_ADDR15 ~ ddr3.addr[15].line
+
+    package.DRAM_DATA00 ~ ddr3.data[0].line; package.DRAM_DATA01 ~ ddr3.data[1].line
+    package.DRAM_DATA02 ~ ddr3.data[2].line; package.DRAM_DATA03 ~ ddr3.data[3].line
+    package.DRAM_DATA04 ~ ddr3.data[4].line; package.DRAM_DATA05 ~ ddr3.data[5].line
+    package.DRAM_DATA06 ~ ddr3.data[6].line; package.DRAM_DATA07 ~ ddr3.data[7].line
+    package.DRAM_DATA08 ~ ddr3.data[8].line; package.DRAM_DATA09 ~ ddr3.data[9].line
+    package.DRAM_DATA10 ~ ddr3.data[10].line; package.DRAM_DATA11 ~ ddr3.data[11].line
+    package.DRAM_DATA12 ~ ddr3.data[12].line; package.DRAM_DATA13 ~ ddr3.data[13].line
+    package.DRAM_DATA14 ~ ddr3.data[14].line; package.DRAM_DATA15 ~ ddr3.data[15].line
+
+    package.DRAM_SDBA0 ~ ddr3.ba[0].line
+    package.DRAM_SDBA1 ~ ddr3.ba[1].line
+    package.DRAM_SDBA2 ~ ddr3.ba[2].line
+
+    package.DRAM_DQM0 ~ ddr3.dqm[0].line
+    package.DRAM_DQM1 ~ ddr3.dqm[1].line
+
+    package.DRAM_SDQS0_P ~ ddr3.dqs_p[0].line
+    package.DRAM_SDQS0_N ~ ddr3.dqs_n[0].line
+    package.DRAM_SDQS1_P ~ ddr3.dqs_p[1].line
+    package.DRAM_SDQS1_N ~ ddr3.dqs_n[1].line
+
+    package.DRAM_SDCLK0_P ~ ddr3.sdck_p.line
+    package.DRAM_SDCLK0_N ~ ddr3.sdck_n.line
+    package.DRAM_SDCKE0 ~ ddr3.sdcke.line
+    package.DRAM_CS0_B ~ ddr3.cs_b.line
+    package.DRAM_ODT0 ~ ddr3.odt.line
+    package.DRAM_RAS_B ~ ddr3.ras_b.line
+    package.DRAM_CAS_B ~ ddr3.cas_b.line
+    package.DRAM_SDWE_B ~ ddr3.we_b.line
+    package.DRAM_RESET ~ ddr3.reset_b.line
+
+    # All DDR3 references on NVCC_DRAM
+    for s in ddr3.addr:    s.reference ~ power_1v35
+    for s in ddr3.data:    s.reference ~ power_1v35
+    for s in ddr3.ba:      s.reference ~ power_1v35
+    for s in ddr3.dqm:     s.reference ~ power_1v35
+    for s in ddr3.dqs_p:   s.reference ~ power_1v35
+    for s in ddr3.dqs_n:   s.reference ~ power_1v35
+    ddr3.sdck_p.reference ~ power_1v35
+    ddr3.sdck_n.reference ~ power_1v35
+    ddr3.sdcke.reference  ~ power_1v35
+    ddr3.cs_b.reference   ~ power_1v35
+    ddr3.odt.reference    ~ power_1v35
+    ddr3.ras_b.reference  ~ power_1v35
+    ddr3.cas_b.reference  ~ power_1v35
+    ddr3.we_b.reference   ~ power_1v35
+    ddr3.reset_b.reference ~ power_1v35
+
+    # CS1/ODT1/SDCKE1 left floating (single-chip configuration)
+
+    # ============= ENET1 RMII =============
+    package.ENET1_TX_CLK   ~ rmii.ref_clk.line
+    package.ENET1_TX_DATA0 ~ rmii.txd[0].line
+    package.ENET1_TX_DATA1 ~ rmii.txd[1].line
+    package.ENET1_TX_EN    ~ rmii.tx_en.line
+    package.ENET1_RX_DATA0 ~ rmii.rxd[0].line
+    package.ENET1_RX_DATA1 ~ rmii.rxd[1].line
+    package.ENET1_RX_EN    ~ rmii.crs_dv.line
+    package.ENET1_RX_ER    ~ rmii.rx_er.line
+    rmii.ref_clk.reference ~ power_3v3
+    rmii.txd[0].reference  ~ power_3v3
+    rmii.txd[1].reference  ~ power_3v3
+    rmii.tx_en.reference   ~ power_3v3
+    rmii.rxd[0].reference  ~ power_3v3
+    rmii.rxd[1].reference  ~ power_3v3
+    rmii.crs_dv.reference  ~ power_3v3
+    rmii.rx_er.reference   ~ power_3v3
+
+    # MDIO/MDC: muxed onto UART1_CTS_B (K15) / UART1_RTS_B (J14) per imx6ul-pinfunc.h
+    #   MX6UL_PAD_GPIO1_IO22__ENET1_MDC  → ball K15 (== UART1_CTS_B in primary function)
+    #   MX6UL_PAD_GPIO1_IO23__ENET1_MDIO → ball J14 (== UART1_RTS_B)
+    package.UART1_CTS_B ~ mdio.mdc.line
+    package.UART1_RTS_B ~ mdio.mdio.line
+    mdio.mdc.reference  ~ power_3v3
+    mdio.mdio.reference ~ power_3v3
+
+    # ENET PHY reset on GPIO1_IO02 with 10kΩ pulldown (PHY held in reset until firmware
+    # deasserts after kernel-side init, per i.MX HDG ENET section).
+    package.GPIO1_IO02 ~ enet_reset.line
+    enet_reset.reference ~ power_3v3
+    r_phy_rst_pd = new Resistor
+    r_phy_rst_pd.resistance = 10kohm +/- 5%
+    r_phy_rst_pd.package = "0402"
+    enet_reset.line ~> r_phy_rst_pd ~> power_3v3.lv
+
+    # ============= USDHC1 (microSD) =============
+    package.SD1_CMD   ~ usdhc1_cmd.line
+    package.SD1_CLK   ~ usdhc1_clk.line
+    package.SD1_DATA0 ~ usdhc1_dat[0].line
+    package.SD1_DATA1 ~ usdhc1_dat[1].line
+    package.SD1_DATA2 ~ usdhc1_dat[2].line
+    package.SD1_DATA3 ~ usdhc1_dat[3].line
+    usdhc1_cmd.reference ~ power_3v3
+    usdhc1_clk.reference ~ power_3v3
+    for d in usdhc1_dat: d.reference ~ power_3v3
+
+    # SD card-detect on GPIO1_IO09 (M15) — free pad, not a strap, on NVCC_GPIO
+    package.GPIO1_IO09 ~ sd_cd.line
+    sd_cd.reference ~ power_3v3
+
+    # ============= USB OTG1 =============
+    # D+/D- direct to USB-C connector. VBUS pin gets a divider so the on-chip
+    # comparator never exceeds 5.5V (datasheet §6.4.4 USB VBUS protection).
+    package.USB_OTG1_DP   ~ usb_otg1.p.line
+    package.USB_OTG1_DN   ~ usb_otg1.n.line
+    usb_otg1.p.reference  ~ power_3v3
+    usb_otg1.n.reference  ~ power_3v3
+
+    # VBUS sense divider: 5V → ~3.0V via 20kΩ/30kΩ (Vsense = Vbus * 30/(20+30) = 3V)
+    r_vbus_top = new Resistor
+    r_vbus_top.resistance = 20kohm +/- 1%
+    r_vbus_top.package = "0402"
+    r_vbus_bot = new Resistor
+    r_vbus_bot.resistance = 30kohm +/- 1%
+    r_vbus_bot.package = "0402"
+    usb_otg1_vbus_sense.line ~> r_vbus_top ~> package.USB_OTG1_VBUS
+    package.USB_OTG1_VBUS ~> r_vbus_bot ~> power_3v3.lv
+    usb_otg1_vbus_sense.reference ~ power_3v3
+
+    # USB OTG ID on GPIO1_IO00 (ALT2 = ANATOP_OTG1_ID)
+    package.GPIO1_IO00 ~ usb_otg1_id.line
+    usb_otg1_id.reference ~ power_3v3
+
+    # ============= UART2 console =============
+    package.UART2_TX_DATA ~ uart2.tx.line
+    package.UART2_RX_DATA ~ uart2.rx.line
+    uart2.tx.reference ~ power_3v3
+    uart2.rx.reference ~ power_3v3
+
+    # ============= SAI3 I²S audio =============
+    # IMPORTANT: SAI2 cannot be used here — its only mux options are JTAG balls
+    # (ALT2) or SD1 balls (ALT2). SAI3 muxes to LCD control balls (ALT3) and
+    # is the correct choice when JTAG + USDHC1 must both be retained.
+    # Per imx6ul-pinfunc.h:
+    #   MX6UL_PAD_LCD_HSYNC__SAI3_TX_BCLK    — ALT3
+    #   MX6UL_PAD_LCD_ENABLE__SAI3_TX_SYNC   — ALT3 (LRCLK)
+    #   MX6UL_PAD_LCD_RESET__SAI3_TX_DATA    — ALT3
+    # None of these are BT_CFG straps (those are LCD_DATA00..23).
+    package.LCD_HSYNC  ~ sai3.sck.line   # BCLK
+    package.LCD_ENABLE ~ sai3.ws.line    # SYNC / LRCLK
+    package.LCD_RESET  ~ sai3.sd.line    # DATA
+    sai3.sck.reference ~ power_3v3
+    sai3.ws.reference  ~ power_3v3
+    sai3.sd.reference  ~ power_3v3
+
+    # ============= JTAG =============
+    package.JTAG_TCK ~ jtag.tck.line
+    package.JTAG_TMS ~ jtag.tms.line
+    package.JTAG_TDI ~ jtag.tdi.line
+    package.JTAG_TDO ~ jtag.tdo.line
+    package.JTAG_TRST_B ~ jtag.n_trst.line
+    jtag.tck.reference ~ power_3v3
+    jtag.tms.reference ~ power_3v3
+    jtag.tdi.reference ~ power_3v3
+    jtag.tdo.reference ~ power_3v3
+    jtag.n_trst.reference ~ power_3v3
+    jtag.vtref ~ power_3v3
+    # n_reset is the chip's POR_B line, exposed via reset signal
+    jtag.n_reset ~ reset
+
+    # JTAG_TRST_B with 10kΩ pullup to 3V3 (deassert by default)
+    r_trst_pu = new Resistor
+    r_trst_pu.resistance = 10kohm +/- 5%
+    r_trst_pu.package = "0402"
+    package.JTAG_TRST_B ~> r_trst_pu ~> power_3v3.hv
+
+    # ============= Heartbeat + boot mode =============
+    package.GPIO1_IO03 ~ heartbeat.line
+    heartbeat.reference ~ power_3v3
+    # BOOT_MODE0/1 are dedicated SNVS-domain inputs. Logic levels reference VDD_SNVS_IN,
+    # not 3V3. Debug DIP must short to GND or pull up to power_snvs.hv.
+    package.BOOT_MODE0 ~ boot_mode0.line
+    package.BOOT_MODE1 ~ boot_mode1.line
+    boot_mode0.reference ~ power_snvs
+    boot_mode1.reference ~ power_snvs

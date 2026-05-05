@@ -9,6 +9,7 @@ import ElectricLogic
 import UART_Base
 import I2S
 import JTAG
+import DifferentialPair
 import Electrical
 
 from "network.ato" import Network
@@ -18,6 +19,8 @@ from "audio.ato" import Audio
 from "microsd.ato" import MicroSD
 from "power_input.ato" import PowerInput
 from "debug.ato" import Debug
+from "mpu.ato" import MPU
+from "mpu.ato" import DDR3Bus
 from "atopile/microchip-lan8742a/microchip-lan8742a.ato" import RMII
 from "atopile/microchip-lan8742a/microchip-lan8742a.ato" import MDIO
 
@@ -104,6 +107,7 @@ module Board:
     boot_mode1_to_mpu  = new ElectricLogic
     uart2_to_mpu       = new UART_Base
     dbg.power_3v3   ~ power_3v3
+    dbg.power_snvs  ~ power_snvs
     dbg.vbat_to_psu ~ vbat_in
     dbg.jtag        ~ jtag_to_mpu
     dbg.reset       ~ reset_to_mpu
@@ -113,3 +117,52 @@ module Board:
     dbg.uart_console ~ uart2_to_mpu
     dbg.speaker_p   ~ speaker_p_pad
     dbg.speaker_n   ~ speaker_n_pad
+
+    # ---- MPU (i.MX 6ULL) ----
+    mpu = new MPU
+    mpu.power_3v3     ~ power_3v3
+    mpu.power_1v4_arm ~ power_1v4_arm
+    mpu.power_1v4_soc ~ power_1v4_soc
+    mpu.power_1v35    ~ power_1v35
+    mpu.power_snvs    ~ power_snvs
+
+    # Buses to peripherals
+    mpu.rmii          ~ rmii_to_mpu
+    mpu.mdio          ~ mdio_to_mpu
+    mpu.enet_reset    ~ enet_reset_from_mpu
+    mpu.usdhc1_cmd    ~ usdhc1_cmd
+    mpu.usdhc1_clk    ~ usdhc1_clk
+    mpu.usdhc1_dat[0] ~ usdhc1_dat[0]
+    mpu.usdhc1_dat[1] ~ usdhc1_dat[1]
+    mpu.usdhc1_dat[2] ~ usdhc1_dat[2]
+    mpu.usdhc1_dat[3] ~ usdhc1_dat[3]
+    mpu.sd_cd         ~ sd_cd
+
+    # SAI3 → I²S → MAX98357A
+    mpu.sai3          ~ sai_to_mpu
+
+    # UART2 console — both CH340N (USB) and TTL header tap the same MPU UART2
+    mpu.uart2 ~ uart2_to_mpu      # to TTL header in Debug
+    mpu.uart2 ~ uart1_to_mpu      # to CH340N in USBUart (named uart1 historically)
+
+    # JTAG to debug header
+    mpu.jtag ~ jtag_to_mpu
+
+    # Reset / boot / status
+    mpu.reset         ~ reset_to_mpu
+    mpu.heartbeat     ~ heartbeat_from_mpu
+    mpu.boot_mode0    ~ boot_mode0_to_mpu
+    mpu.boot_mode1    ~ boot_mode1_to_mpu
+
+    # USB OTG1: D+/D- on the MPU side; USB-C #2 connector subsystem is a TODO.
+    # Expose at Board boundary as floating signals for now.
+    usb_otg_pair       = new DifferentialPair
+    usb_otg_vbus_sense = new ElectricLogic
+    usb_otg_id         = new ElectricLogic
+    mpu.usb_otg1            ~ usb_otg_pair
+    mpu.usb_otg1_vbus_sense ~ usb_otg_vbus_sense
+    mpu.usb_otg1_id         ~ usb_otg_id
+
+    # DDR3 bus exposed for DDR3 module to connect (not yet built)
+    ddr3_to_dram = new DDR3Bus
+    mpu.ddr3 ~ ddr3_to_dram

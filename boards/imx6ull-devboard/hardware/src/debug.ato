@@ -39,6 +39,8 @@ module Debug:
     # External interfaces
     power_3v3   = new ElectricPower
     power_3v3.required = True
+    power_snvs  = new ElectricPower    # 3V SNVS rail (from PowerTree, OR'd w/ coin cell)
+    power_snvs.required = True
     vbat_to_psu = new ElectricPower    # → PowerTree.vbat_in
 
     jtag        = new JTAG
@@ -95,23 +97,24 @@ module Debug:
     jtag.vtref ~ power_3v3
 
     # ---- BOOT_MODE 2-position DIP switch ----
-    # Each switch shorts to GND when ON. 10kΩ pull-up to 3V3 sets default HIGH.
-    # See docs for boot mode truth table.
+    # BOOT_MODE0/1 are SNVS-domain inputs on i.MX 6ULL — pull-ups must go to
+    # VDD_SNVS_IN (~3V), NOT 3V3. Verified against IMX6ULLIEC datasheet §6.1.
+    # We expose `vbat_to_psu` upstream as the SNVS rail for that purpose.
     boot_dip = new kangshen_DSIC02LSGET_package
     r_bm0_pu = new Resistor; r_bm0_pu.resistance = 10kohm +/- 5%; r_bm0_pu.package = "0402"
     r_bm1_pu = new Resistor; r_bm1_pu.resistance = 10kohm +/- 5%; r_bm1_pu.package = "0402"
 
     # DSIC02LSGET pin pairs: SW1 = pins 1↔4 (SW1A↔SW1B), SW2 = pins 2↔3 (SW2A↔SW2B)
-    # Each DIP closes its pair to GND, default pulled to 3V3 by 10kΩ.
+    # Each DIP closes its pair to GND, default pulled to SNVS by 10kΩ.
     boot_dip.SW1A ~ boot_mode1.line
-    boot_dip.SW1B ~ power_3v3.lv
+    boot_dip.SW1B ~ power_3v3.lv     # GND is shared between domains
     boot_dip.SW2A ~ boot_mode0.line
     boot_dip.SW2B ~ power_3v3.lv
 
-    boot_mode0.line ~> r_bm0_pu ~> power_3v3.hv
-    boot_mode1.line ~> r_bm1_pu ~> power_3v3.hv
-    boot_mode0.reference ~ power_3v3
-    boot_mode1.reference ~ power_3v3
+    boot_mode0.line ~> r_bm0_pu ~> power_snvs.hv
+    boot_mode1.line ~> r_bm1_pu ~> power_snvs.hv
+    boot_mode0.reference ~ power_snvs
+    boot_mode1.reference ~ power_snvs
 
     # ---- Status LEDs ----
     # Both ~2 mA at 3V3 (R = (3.3-2.0)/2mA = 650Ω → 680Ω). LED can_bridge anode→cathode.

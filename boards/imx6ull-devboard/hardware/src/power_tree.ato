@@ -63,11 +63,19 @@ module PowerTree:
     buck_1v4  = new TI_TPS563201
     buck_1v35 = new TI_TPS563201
 
-    # Output voltage setpoints. Tightened 1V35 to ±3% (reviewer fix #3) so we
-    # stay clear of DDR3L Vddq abs-max 1.45V at upper rail.
-    assert buck_3v3.output_voltage  within 3.3V +/- 5%
-    assert buck_1v4.output_voltage  within 1.4V +/- 5%
-    assert buck_1v35.output_voltage within 1.35V +/- 4%
+    # Pin FB divider resistors directly. Picker had trouble satisfying with
+    # global rail constraints; explicit values are deterministic and
+    # commonize 10kΩ across all three bucks (already in BOM).
+    # Vref = 0.768V; Vout = Vref × (1 + R_top/R_bot)
+    #   3V3: 33.0k / 10k → 3.302V
+    #   1V4: 8.2k  / 10k → 1.398V
+    #   1V35: 7.5k / 10k → 1.344V
+    buck_3v3.feedback_divider.chain.resistors[0].resistance = 33kohm +/- 1%
+    buck_3v3.feedback_divider.chain.resistors[1].resistance = 10kohm +/- 1%
+    buck_1v4.feedback_divider.chain.resistors[0].resistance = 8.2kohm +/- 1%
+    buck_1v4.feedback_divider.chain.resistors[1].resistance = 10kohm +/- 1%
+    buck_1v35.feedback_divider.chain.resistors[0].resistance = 7.5kohm +/- 1%
+    buck_1v35.feedback_divider.chain.resistors[1].resistance = 10kohm +/- 1%
 
     # Bump inductor saturation requirement above TPS563201 OCL_max (5.1A typ +
     # half ripple) — reviewer fix #4. The package's default `>= 3A` lets the

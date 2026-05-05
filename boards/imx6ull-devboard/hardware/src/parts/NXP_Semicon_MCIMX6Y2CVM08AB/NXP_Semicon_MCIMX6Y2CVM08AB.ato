@@ -1,0 +1,306 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+import is_auto_generated
+
+component NXP_Semicon_MCIMX6Y2CVM08AB_package:
+    # This trait marks this file as auto-generated
+    # If you want to manually change it, remove the trait
+    trait is_auto_generated<system="ato_part", source="easyeda:C414042", date="2026-05-05T04:11:34.094158+00:00", checksum="a72a683893289ad8638f9e8757004d4002acb9aabd7b0bca1daa9fc1aa98cf29">
+
+    trait is_atomic_part<manufacturer="NXP Semicon", partnumber="MCIMX6Y2CVM08AB", footprint="BGA-289_L14.0-W14.0-R17-C17-P0.80-BL.kicad_mod", symbol="MCIMX6Y2CVM08AB.kicad_sym", model="BGA-289_L14.0-W14.0-H1.4-P0.8.step">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C414042", manufacturer="NXP Semicon", partno="MCIMX6Y2CVM08AB">
+    trait has_designator_prefix<prefix="U">
+    trait has_datasheet<datasheet="https://www.lcsc.com/datasheet/lcsc_datasheet_2405281456_NXP-Semicon-MCIMX6Y2CVM08AB_C414042.pdf">
+
+    # pins
+    signal ADC_VREFH ~ pin M13
+    signal BOOT_MODE0 ~ pin T10
+    signal BOOT_MODE1 ~ pin 10
+    signal CCM_CLK1_N ~ pin P16
+    signal CCM_CLK1_P ~ pin P17
+    signal CCM_PMIC_STBY_REQ ~ pin 9
+    signal CSI_DATA00 ~ pin E4
+    signal CSI_DATA01 ~ pin E3
+    signal CSI_DATA02 ~ pin E2
+    signal CSI_DATA03 ~ pin D18
+    signal CSI_DATA04 ~ pin D4
+    signal CSI_DATA05 ~ pin D3
+    signal CSI_DATA06 ~ pin D2
+    signal CSI_DATA07 ~ pin D1
+    signal CSI_HSYNC ~ pin F3
+    signal CSI_MCLK ~ pin F5
+    signal CSI_PIXCLK ~ pin E5
+    signal CSI_VSYNC ~ pin F2
+    signal DRAM_ADDR00 ~ pin L5
+    signal DRAM_ADDR01 ~ pin H2
+    signal DRAM_ADDR02 ~ pin K1
+    signal DRAM_ADDR03 ~ pin M2
+    signal DRAM_ADDR04 ~ pin K4
+    signal DRAM_ADDR05 ~ pin L1
+    signal DRAM_ADDR06 ~ pin G2
+    signal DRAM_ADDR07 ~ pin H4
+    signal DRAM_ADDR08 ~ pin J4
+    signal DRAM_ADDR09 ~ pin L2
+    signal DRAM_ADDR10 ~ pin M4
+    signal DRAM_ADDR11 ~ pin K3
+    signal DRAM_ADDR12 ~ pin L4
+    signal DRAM_ADDR13 ~ pin H3
+    signal DRAM_ADDR14 ~ pin G1
+    signal DRAM_ADDR15 ~ pin K5
+    signal DRAM_CAS_B ~ pin J2
+    signal DRAM_CS0_B ~ pin N2
+    signal DRAM_CS1_B ~ pin H5
+    signal DRAM_DATA00 ~ pin T4
+    signal DRAM_DATA01 ~ pin 6
+    signal DRAM_DATA02 ~ pin T6
+    signal DRAM_DATA03 ~ pin 7
+    signal DRAM_DATA04 ~ pin 8
+    signal DRAM_DATA05 ~ pin T8
+    signal DRAM_DATA06 ~ pin T5
+    signal DRAM_DATA07 ~ pin 4
+    signal DRAM_DATA08 ~ pin 2
+    signal DRAM_DATA09 ~ pin 3
+    signal DRAM_DATA10 ~ pin 5
+    signal DRAM_DATA11 ~ pin 4
+    signal DRAM_DATA12 ~ pin P5
+    signal DRAM_DATA13 ~ pin P3
+    signal DRAM_DATA14 ~ pin R2
+    signal DRAM_DATA15 ~ pin R1
+    signal DRAM_DQM0 ~ pin T7
+    signal DRAM_DQM1 ~ pin T3
+    signal DRAM_ODT0 ~ pin N1
+    signal DRAM_ODT1 ~ pin F1
+    signal DRAM_RAS_B ~ pin M5
+    signal DRAM_RESET ~ pin 4
+    signal DRAM_SDBA0 ~ pin M1
+    signal DRAM_SDBA1 ~ pin H1
+    signal DRAM_SDBA2 ~ pin K2
+    signal DRAM_SDCKE0 ~ pin M3
+    signal DRAM_SDCKE1 ~ pin J3
+    signal DRAM_SDCLK0_N ~ pin P2
+    signal DRAM_SDCLK0_P ~ pin P1
+    signal DRAM_SDQS0_N ~ pin P7
+    signal DRAM_SDQS0_P ~ pin P6
+    signal DRAM_SDQS1_N ~ pin T2
+    signal DRAM_SDQS1_P ~ pin T1
+    signal DRAM_SDWE_B ~ pin J1
+    signal DRAM_VREF ~ pin P4
+    signal DRAM_ZQPAD ~ pin N4
+    signal ENET1_RX_DATA0 ~ pin F16
+    signal ENET1_RX_DATA1 ~ pin E17
+    signal ENET1_RX_EN ~ pin E16
+    signal ENET1_RX_ER ~ pin D15
+    signal ENET1_TX_CLK ~ pin F14
+    signal ENET1_TX_DATA0 ~ pin E15
+    signal ENET1_TX_DATA1 ~ pin E14
+    signal ENET1_TX_EN ~ pin F15
+    signal ENET2_RX_DATA0 ~ pin C17
+    signal ENET2_RX_DATA1 ~ pin C16
+    signal ENET2_RX_EN ~ pin B17
+    signal ENET2_RX_ER ~ pin D16
+    signal ENET2_TX_CLK ~ pin D17
+    signal ENET2_TX_DATA0 ~ pin A15
+    signal ENET2_TX_DATA1 ~ pin A16
+    signal ENET2_TX_EN ~ pin B15
+    signal GPANAIO ~ pin R13
+    signal GPIO1_IO00 ~ pin K13
+    signal GPIO1_IO01 ~ pin L15
+    signal GPIO1_IO02 ~ pin L14
+    signal GPIO1_IO03 ~ pin L17
+    signal GPIO1_IO04 ~ pin M16
+    signal GPIO1_IO05 ~ pin M17
+    signal GPIO1_IO06 ~ pin K17
+    signal GPIO1_IO07 ~ pin L16
+    signal GPIO1_IO08 ~ pin N17
+    signal GPIO1_IO09 ~ pin M15
+    signal JTAG_MOD ~ pin P15
+    signal JTAG_TCK ~ pin M14
+    signal JTAG_TDI ~ pin N16
+    signal JTAG_TDO ~ pin N15
+    signal JTAG_TMS ~ pin P14
+    signal JTAG_TRST_B ~ pin N14
+    signal LCD_CLK ~ pin A8
+    signal LCD_DATA00 ~ pin B9
+    signal LCD_DATA01 ~ pin A9
+    signal LCD_DATA02 ~ pin E10
+    signal LCD_DATA03 ~ pin D10
+    signal LCD_DATA04 ~ pin C10
+    signal LCD_DATA05 ~ pin B10
+    signal LCD_DATA06 ~ pin A10
+    signal LCD_DATA07 ~ pin D11
+    signal LCD_DATA08 ~ pin B11
+    signal LCD_DATA09 ~ pin A11
+    signal LCD_DATA10 ~ pin E12
+    signal LCD_DATA11 ~ pin D12
+    signal LCD_DATA12 ~ pin C12
+    signal LCD_DATA13 ~ pin B12
+    signal LCD_DATA14 ~ pin A12
+    signal LCD_DATA15 ~ pin D13
+    signal LCD_DATA16 ~ pin C13
+    signal LCD_DATA17 ~ pin B13
+    signal LCD_DATA18 ~ pin A13
+    signal LCD_DATA19 ~ pin D14
+    signal LCD_DATA20 ~ pin C14
+    signal LCD_DATA21 ~ pin B14
+    signal LCD_DATA22 ~ pin A14
+    signal LCD_DATA23 ~ pin B16
+    signal LCD_ENABLE ~ pin B8
+    signal LCD_HSYNC ~ pin D9
+    signal LCD_RESET ~ pin E9
+    signal LCD_VSYNC ~ pin C9
+    signal NAND_ALE ~ pin B4
+    signal NAND_CE0_B ~ pin C5
+    signal NAND_CE1_B ~ pin B5
+    signal NAND_CLE ~ pin A4
+    signal NAND_DATA00 ~ pin D7
+    signal NAND_DATA01 ~ pin B7
+    signal NAND_DATA02 ~ pin A7
+    signal NAND_DATA03 ~ pin D6
+    signal NAND_DATA04 ~ pin C6
+    signal NAND_DATA05 ~ pin B6
+    signal NAND_DATA06 ~ pin A6
+    signal NAND_DATA07 ~ pin A5
+    signal NAND_DQS ~ pin E6
+    signal NAND_READY_B ~ pin A3
+    signal NAND_RE_B ~ pin D8
+    signal NAND_WE_B ~ pin C8
+    signal NAND_WP_B ~ pin D5
+    signal NGND_KEL0 ~ pin M12
+    signal NVCC_CSI ~ pin F4
+    signal NVCC_DRAM ~ pin M6
+    NVCC_DRAM ~ pin L6
+    NVCC_DRAM ~ pin K6
+    NVCC_DRAM ~ pin J6
+    NVCC_DRAM ~ pin H6
+    NVCC_DRAM ~ pin 6
+    signal NVCC_DRAM_2P5 ~ pin N6
+    signal NVCC_ENET ~ pin F13
+    signal NVCC_GPIO ~ pin J13
+    signal NVCC_LCD ~ pin E13
+    signal NVCC_NAND ~ pin E7
+    signal NVCC_PLL ~ pin P13
+    signal NVCC_SD1 ~ pin C4
+    signal NVCC_UART ~ pin H13
+    signal ONOFF ~ pin R8
+    signal POR_B ~ pin P8
+    signal RTC_XTALI ~ pin T11
+    signal RTC_XTALO ~ pin 11
+    signal SD1_CLK ~ pin C1
+    signal SD1_CMD ~ pin C2
+    signal SD1_DATA0 ~ pin B3
+    signal SD1_DATA1 ~ pin B2
+    signal SD1_DATA2 ~ pin B1
+    signal SD1_DATA3 ~ pin A2
+    signal SNVS_PMIC_ON_REQ ~ pin T9
+    signal SNVS_TAMPER0 ~ pin R10
+    signal SNVS_TAMPER1 ~ pin R9
+    signal SNVS_TAMPER2 ~ pin P11
+    signal SNVS_TAMPER3 ~ pin P10
+    signal SNVS_TAMPER4 ~ pin P9
+    signal SNVS_TAMPER5 ~ pin N8
+    signal SNVS_TAMPER6 ~ pin N11
+    signal SNVS_TAMPER7 ~ pin N10
+    signal SNVS_TAMPER8 ~ pin N9
+    signal SNVS_TAMPER9 ~ pin R6
+    signal TEST_MODE ~ pin N7
+    signal UART1_CTS_B ~ pin K15
+    signal UART1_RTS_B ~ pin J14
+    signal UART1_RX_DATA ~ pin K16
+    signal UART1_TX_DATA ~ pin K14
+    signal UART2_CTS_B ~ pin J15
+    signal UART2_RTS_B ~ pin H14
+    signal UART2_RX_DATA ~ pin J16
+    signal UART2_TX_DATA ~ pin J17
+    signal UART3_CTS_B ~ pin H15
+    signal UART3_RTS_B ~ pin 14
+    signal UART3_RX_DATA ~ pin H16
+    signal UART3_TX_DATA ~ pin H17
+    signal UART4_RX_DATA ~ pin G16
+    signal UART4_TX_DATA ~ pin G17
+    signal UART5_RX_DATA ~ pin 13
+    signal UART5_TX_DATA ~ pin F17
+    signal USB_OTG1_CHD_B ~ pin 16
+    signal USB_OTG1_DN ~ pin T15
+    signal USB_OTG1_DP ~ pin 15
+    signal USB_OTG1_VBUS ~ pin T12
+    signal USB_OTG2_DN ~ pin T13
+    signal USB_OTG2_DP ~ pin 13
+    signal USB_OTG2_VBUS ~ pin 12
+    signal VDDA_ADC_3P3 ~ pin L13
+    signal VDD_ARM_CAP ~ pin H11
+    VDD_ARM_CAP ~ pin G11
+    VDD_ARM_CAP ~ pin G10
+    VDD_ARM_CAP ~ pin G9
+    signal VDD_HIGH_CAP ~ pin R15
+    VDD_HIGH_CAP ~ pin R14
+    signal VDD_HIGH_IN ~ pin N13
+    signal VDD_SNVS_CAP ~ pin N12
+    signal VDD_SNVS_IN ~ pin P12
+    signal VDD_SOC_CAP ~ pin L11
+    VDD_SOC_CAP ~ pin L10
+    VDD_SOC_CAP ~ pin L9
+    VDD_SOC_CAP ~ pin L8
+    VDD_SOC_CAP ~ pin K11
+    VDD_SOC_CAP ~ pin K8
+    VDD_SOC_CAP ~ pin J11
+    VDD_SOC_CAP ~ pin J8
+    VDD_SOC_CAP ~ pin H8
+    VDD_SOC_CAP ~ pin G8
+    signal VDD_SOC_IN ~ pin K10
+    VDD_SOC_IN ~ pin K9
+    VDD_SOC_IN ~ pin J10
+    VDD_SOC_IN ~ pin J9
+    VDD_SOC_IN ~ pin H10
+    VDD_SOC_IN ~ pin H9
+    signal VDD_USB_CAP ~ pin R12
+    signal VSS ~ pin 17
+    VSS ~ pin 14
+    VSS ~ pin U1
+    VSS ~ pin T14
+    VSS ~ pin 17
+    VSS ~ pin R16
+    VSS ~ pin R11
+    VSS ~ pin R7
+    VSS ~ pin 5
+    VSS ~ pin R3
+    VSS ~ pin N5
+    VSS ~ pin N3
+    VSS ~ pin 11
+    VSS ~ pin 10
+    VSS ~ pin 9
+    VSS ~ pin 8
+    VSS ~ pin M7
+    VSS ~ pin L12
+    VSS ~ pin L7
+    VSS ~ pin L3
+    VSS ~ pin K12
+    VSS ~ pin K7
+    VSS ~ pin J12
+    VSS ~ pin J7
+    VSS ~ pin J5
+    VSS ~ pin H12
+    VSS ~ pin H7
+    VSS ~ pin 15
+    VSS ~ pin G12
+    VSS ~ pin G7
+    VSS ~ pin 5
+    VSS ~ pin G3
+    VSS ~ pin F12
+    VSS ~ pin F11
+    VSS ~ pin F10
+    VSS ~ pin F9
+    VSS ~ pin F8
+    VSS ~ pin F7
+    VSS ~ pin F6
+    VSS ~ pin E11
+    VSS ~ pin E8
+    VSS ~ pin C15
+    VSS ~ pin C11
+    VSS ~ pin C7
+    VSS ~ pin C3
+    VSS ~ pin A17
+    VSS ~ pin A1
+    signal XTALI ~ pin T16
+    signal XTALO ~ pin T17
