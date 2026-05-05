@@ -1,0 +1,19 @@
+"""Hello-world: a single pull-down resistor on a 3.3V rail.
+
+Testing the toolchain end-to-end: parse, solve, pick a real LCSC part, emit KiCad netlist + BOM.
+"""
+
+#pragma experiment("BRIDGE_CONNECT")
+
+import Resistor
+import ElectricPower
+
+module App:
+    power = new ElectricPower
+    pulldown = new Resistor
+
+    pulldown.resistance = 10kohm +/- 5%
+    pulldown.package = "0402"
+
+    power.voltage = 3.3V +/- 5%
+    power.hv ~> pulldown ~> power.lv
