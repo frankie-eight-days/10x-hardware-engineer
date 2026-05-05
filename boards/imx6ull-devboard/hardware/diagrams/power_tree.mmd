@@ -1,0 +1,34 @@
+%% Power tree — focused view, with currents and sequencing
+%% Numbers are budgets, refine after datasheet review.
+
+flowchart LR
+    USBC[USB-C PD<br/>5V @ up to 3A]
+    BENCH[Bench supply<br/>5V @ 5A]
+    OR((5V_BOARD<br/>OR'd))
+    USBC --> SS54_1[SS54] --> OR
+    BENCH --> AO3401[AO3401A<br/>rev-pol P-FET] --> SS54_2[SS54] --> OR
+
+    OR --> B33[Buck<br/>TPS54560x<br/>5V → 3V3 @ 1A]
+    OR --> BARM[Buck<br/>TPS563201<br/>5V → 1V4 @ 600mA<br/>VDD_ARM_SOC]
+    OR --> BDRAM[Buck<br/>TPS563201<br/>5V → 1V35 @ 400mA<br/>NVCC_DRAM DDR3L]
+    OR --> LSNVS[LDO<br/>LDK220<br/>5V → 3V SNVS]
+
+    B33 --> L18[LDO<br/>TLV75901<br/>3V3 → 1V8 @ 300mA]
+    BDRAM --> LVTT[LDO<br/>TPS51200<br/>VTT = NVCC_DRAM/2 = 0.675V<br/>tracked, sink/source]
+
+    COIN[CR2032<br/>RTC backup] -.-> LSNVS
+
+    %% Consumers
+    B33 --> CONS_3V3[/MPU NVCC_*, ETH PHY,<br/>I2S amp, CH340N, level translation/]
+    BARM --> CONS_ARM[/MPU VDD_ARM_CAP<br/>VDD_SOC_IN/]
+    BDRAM --> CONS_DRAM[/MPU NVCC_DRAM<br/>DDR3L Vdd/Vddq/]
+    LVTT --> CONS_VTT[/DDR3L Vtt termination<br/>through Rtt/]
+    L18 --> CONS_18[/SD/eMMC NVCC_SD,<br/>some MPU NVCC_*/]
+    LSNVS --> CONS_SNVS[/MPU VDD_SNVS_CAP<br/>RTC + secure RAM/]
+
+    %% Sequencing notes (RM ch. Power Management / AN5187)
+    classDef seq fill:#ffe,stroke:#993,color:#000
+    NOTE[/"Sequencing required:<br/>VDD_SNVS first<br/>→ VDD_HIGH_IN (3V3)<br/>→ VDD_SOC_IN (1V4)<br/>→ NVCC_DRAM<br/>Use PG daisy-chain or<br/>RC delays on EN pins"/]:::seq
+
+    classDef rail fill:#fde,stroke:#933,stroke-width:2px,color:#000
+    class OR rail

@@ -1,0 +1,90 @@
+%% Top-level system block diagram — i.MX 6ULL dev board
+%% Source-of-truth. Render with `mmdc -i system.mmd -o system.svg` or paste into mermaid.live.
+
+flowchart TB
+    subgraph PWR[Power Input & Conditioning]
+        USBC_PWR[USB-C #1: power-only<br/>TYPE-C-31-M-17]
+        HUSB238[HUSB238<br/>PD sink, 5V fixed]
+        BENCH[Bench supply<br/>2-pin terminal block<br/>32V/3.2A available]
+        REVPOL[AO3401A<br/>reverse-polarity P-FET]
+        OR_DIODES[2x SS54 Schottky<br/>manual-select OR]
+        USBC_PWR -- "CC1/CC2<br/>5.1kΩ pulldowns" --> HUSB238
+        USBC_PWR -- "VBUS 5V" --> HUSB238
+        HUSB238 -- "5V" --> OR_DIODES
+        BENCH -- "Vin" --> REVPOL
+        REVPOL -- "5V" --> OR_DIODES
+    end
+
+    OR_DIODES ==> RAIL5V((5V_BOARD))
+
+    subgraph PSU[Discrete Buck/LDO Power Tree]
+        BUCK_3V3[Buck<br/>TPS54560x → 3V3]
+        BUCK_ARM[Buck<br/>TPS563201 → 1V4 ARM/SOC]
+        BUCK_DRAM[Buck<br/>TPS563201 → 1V35 DRAM]
+        LDO_VTT[TPS51200<br/>VTT 0.675V tracked]
+        LDO_1V8[TLV75901<br/>3V3 → 1V8]
+        LDO_SNVS[LDK220<br/>3V → SNVS RTC backup]
+        COIN[CR2032<br/>backup]
+        RAIL5V --> BUCK_3V3 --> BUCK_ARM
+        RAIL5V --> BUCK_DRAM --> LDO_VTT
+        BUCK_3V3 --> LDO_1V8
+        RAIL5V --> LDO_SNVS
+        COIN -. switchover .-> LDO_SNVS
+    end
+
+    subgraph CORE[i.MX 6ULL MCIMX6Y2CVM08AB<br/>Cortex-A7 800MHz, MAPBGA-289 0.8mm]
+        MPU[i.MX 6ULL]
+    end
+
+    BUCK_ARM --> MPU
+    BUCK_3V3 --> MPU
+    BUCK_DRAM --> MPU
+    LDO_VTT --> MPU
+    LDO_1V8 --> MPU
+    LDO_SNVS --> MPU
+
+    subgraph MEM[Memory]
+        DDR3[Nanya NT5CC128M16JR<br/>DDR3L x16, 256 MB]
+        SD[microSD slot<br/>USDHC1 — primary boot]
+    end
+
+    MPU == "16-bit DDR3 bus<br/>address/data/CK/DQS/DM" === DDR3
+    MPU -- "USDHC1 4-bit" --> SD
+
+    subgraph NET[Network]
+        PHY[Microchip LAN8742A<br/>RMII 10/100 Ethernet PHY]
+        RJ45[RJ45 with magnetics]
+    end
+
+    MPU -- "ENET1 RMII<br/>+ MDIO" --> PHY
+    PHY -- "MDI<br/>2 diff pairs" --> RJ45
+
+    subgraph IO[USB / UART / Audio / Debug]
+        USBC_OTG[USB-C #2: data-only<br/>TYPE-C-31-M-17<br/>USB 2.0 OTG]
+        CH340N[CH340N<br/>USB-UART bridge]
+        USB_UART[USB-A<br/>console connector]
+        UART_HDR[4-pin UART header<br/>3V3 TTL fallback]
+        AMP[MAX98357A<br/>I²S Class-D 3W mono]
+        SPK[Speaker pads<br/>4Ω/8Ω]
+        JTAG[10-pin Cortex JTAG/SWD]
+    end
+
+    USBC_OTG -- "D+/D-<br/>+ CC pulldowns,<br/>VBUS unused-or-passthrough" --- MPU
+    MPU -- "UART1" --> CH340N --> USB_UART
+    MPU -- "UART1<br/>same lines" --> UART_HDR
+    MPU -- "I²S / SAI" --> AMP --> SPK
+    MPU -- "JTAG_TCK/TMS/TDI/TDO/nTRST" --> JTAG
+
+    subgraph CTRL[Reset / Boot / Status]
+        RESET[Reset button + RC]
+        BOOTSW[BOOT_MODE 2-pos DIP<br/>SD vs USB serial-download]
+        LEDS[Status LEDs<br/>per-rail PG, heartbeat,<br/>ETH link/act]
+    end
+    RESET --> MPU
+    BOOTSW --> MPU
+    MPU --> LEDS
+
+    classDef rail fill:#fde,stroke:#933,stroke-width:2px,color:#000
+    class RAIL5V rail
+    classDef mpu fill:#ddf,stroke:#33f,stroke-width:2px,color:#000
+    class MPU mpu
