@@ -1,0 +1,90 @@
+"""I²S Class-D audio: MAX98357A → ferrite-bead snubbers → speaker pads.
+
+MAX98357A pin map (TQFN-16):
+   1  DIN        ← MPU SAI TXD
+   2  GAIN_SLOT  → 100kΩ to GND  (+9dB)
+   3  GND        ─ board GND
+   4  nSD_MODE   → 100kΩ to VDD  (active, stereo (L+R)/2 sum)
+   5,6  N_C_     ─ floating
+   7,8  VDD      ← 3V3
+   9   OUTP      → ferrite + 1nF snub → speaker_p
+   10  OUTN      → ferrite + 1nF snub → speaker_n
+   11,15 GND
+   12,13 N_C_    ─ floating
+   14  LRCLK     ← MPU SAI WS
+   16  BCLK      ← MPU SAI SCLK
+   17  EP        ─ thermal pad → GND
+
+Datasheet: Maxim MAX98357A §"Detailed Description" + §"Output Filtering".
+"""
+
+#pragma experiment("BRIDGE_CONNECT")
+#pragma experiment("FOR_LOOP")
+
+import ElectricPower
+import ElectricLogic
+import Electrical
+import I2S
+import Capacitor
+import Resistor
+import Inductor
+
+from "parts/Maxim_Integrated_MAX98357AETE_T/Maxim_Integrated_MAX98357AETE_T.ato" import Maxim_Integrated_MAX98357AETE_T_package
+
+
+module Audio:
+    """I²S Class-D 3W mono audio output."""
+
+    # External interfaces
+    power_3v3 = new ElectricPower
+    power_3v3.required = True
+    i2s       = new I2S
+    speaker_p = new Electrical
+    speaker_n = new Electrical
+
+    chip = new Maxim_Integrated_MAX98357AETE_T_package
+
+    # Power & ground
+    chip.VDD ~ power_3v3.hv
+    chip.GND ~ power_3v3.lv
+    chip.EP  ~ power_3v3.lv     # exposed pad → GND for thermal
+
+    # I²S
+    chip.BCLK  ~ i2s.sck.line
+    chip.LRCLK ~ i2s.ws.line
+    chip.DIN   ~ i2s.sd.line
+    i2s.sck.reference ~ power_3v3
+    i2s.ws.reference  ~ power_3v3
+    i2s.sd.reference  ~ power_3v3
+
+    # ---- nSD_MODE: tied to VDD via 100kΩ → "active, stereo sum" ----
+    r_nsd = new Resistor
+    r_nsd.resistance = 100kohm +/- 5%
+    r_nsd.package = "0402"
+    chip.nSD_MODE ~> r_nsd ~> power_3v3.hv
+
+    # ---- GAIN_SLOT: 100kΩ to GND → +9dB ----
+    r_gain = new Resistor
+    r_gain.resistance = 100kohm +/- 5%
+    r_gain.package = "0402"
+    chip.GAIN_SLOT ~> r_gain ~> power_3v3.lv
+
+    # ---- VDD decoupling (per datasheet: 1µF + 100nF, plus a bulk) ----
+    cap_vdd_hf = new Capacitor; cap_vdd_hf.capacitance = 100nF +/- 20%; cap_vdd_hf.package = "0402"
+    cap_vdd_mf = new Capacitor; cap_vdd_mf.capacitance = 1uF   +/- 20%; cap_vdd_mf.package = "0402"
+    cap_vdd_lf = new Capacitor; cap_vdd_lf.capacitance = 10uF  +/- 20%; cap_vdd_lf.package = "0805"
+    power_3v3.hv ~> cap_vdd_hf ~> power_3v3.lv
+    power_3v3.hv ~> cap_vdd_mf ~> power_3v3.lv
+    power_3v3.hv ~> cap_vdd_lf ~> power_3v3.lv
+
+    # ---- Output ferrite-bead + 1nF snubber, both legs ----
+    # Ferrite (Sunlord GZ2012D601TF, C1017) commonized with power tree.
+    ferrite_p = new Inductor; ferrite_p.lcsc_id = "C1017"
+    ferrite_n = new Inductor; ferrite_n.lcsc_id = "C1017"
+    chip.OUTP ~> ferrite_p ~> speaker_p
+    chip.OUTN ~> ferrite_n ~> speaker_n
+
+    snub_p = new Capacitor; snub_p.capacitance = 1nF +/- 10%; snub_p.package = "0402"
+    snub_n = new Capacitor; snub_n.capacitance = 1nF +/- 10%; snub_n.package = "0402"
+    speaker_p ~> snub_p ~> power_3v3.lv
+    speaker_n ~> snub_n ~> power_3v3.lv

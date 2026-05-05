@@ -7,10 +7,14 @@ import ElectricPower
 import ElectricLogic
 
 import UART_Base
+import I2S
+import Electrical
 
 from "network.ato" import Network
 from "power_tree.ato" import PowerTree
 from "usb_uart.ato" import USBUart
+from "audio.ato" import Audio
+from "microsd.ato" import MicroSD
 from "atopile/microchip-lan8742a/microchip-lan8742a.ato" import RMII
 from "atopile/microchip-lan8742a/microchip-lan8742a.ato" import MDIO
 
@@ -58,3 +62,28 @@ module Board:
     console.power_5v  ~ power_5v
     console.power_3v3 ~ power_3v3
     console.uart      ~ uart1_to_mpu
+
+    # ---- Audio ----
+    audio = new Audio
+    sai_to_mpu = new I2S
+    speaker_p_pad = new Electrical
+    speaker_n_pad = new Electrical
+    audio.power_3v3 ~ power_3v3
+    audio.i2s       ~ sai_to_mpu
+    audio.speaker_p ~ speaker_p_pad
+    audio.speaker_n ~ speaker_n_pad
+
+    # ---- microSD (boot medium) ----
+    sd = new MicroSD
+    usdhc1_cmd = new ElectricLogic
+    usdhc1_clk = new ElectricLogic
+    usdhc1_dat = new ElectricLogic[4]
+    sd_cd      = new ElectricLogic
+    sd.power_3v3 ~ power_3v3
+    sd.cmd ~ usdhc1_cmd
+    sd.clk ~ usdhc1_clk
+    sd.dat[0] ~ usdhc1_dat[0]
+    sd.dat[1] ~ usdhc1_dat[1]
+    sd.dat[2] ~ usdhc1_dat[2]
+    sd.dat[3] ~ usdhc1_dat[3]
+    sd.cd ~ sd_cd

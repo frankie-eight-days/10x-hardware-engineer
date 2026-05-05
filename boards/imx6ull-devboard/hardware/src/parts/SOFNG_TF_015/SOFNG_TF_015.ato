@@ -1,0 +1,30 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+import is_auto_generated
+
+component SOFNG_TF_015_package:
+    # This trait marks this file as auto-generated
+    # If you want to manually change it, remove the trait
+    trait is_auto_generated<system="ato_part", source="easyeda:C113206", date="2026-05-05T03:24:34.460257+00:00", checksum="fce843e75d1a6df91ace1d530a2cccf5b466dc3c2a5f1e94bd431b5596242663">
+
+    trait is_atomic_part<manufacturer="SOFNG", partnumber="TF-015", footprint="TF-SMD_TF-015.kicad_mod", symbol="TF-015.kicad_sym", model="TF-SMD_L14.8-W14.5-H1.9-P1.1.step">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C113206", manufacturer="SOFNG", partno="TF-015">
+    trait has_designator_prefix<prefix="Card">
+    trait has_datasheet<datasheet="https://www.lcsc.com/datasheet/lcsc_datasheet_2112221030_SOFNG-TF-015_C113206.pdf">
+
+    # pins
+    signal CD ~ pin 9
+    signal CDDAT3CS ~ pin 2
+    signal CLKSCLK ~ pin 5
+    signal CMDDI ~ pin 3
+    signal DAT0D0 ~ pin 7
+    signal DAT1RSV ~ pin 8
+    signal DAT2RSV ~ pin 1
+    signal GND ~ pin 13
+    GND ~ pin 10
+    GND ~ pin 11
+    GND ~ pin 12
+    signal VDD ~ pin 4
+    signal VSS ~ pin 6

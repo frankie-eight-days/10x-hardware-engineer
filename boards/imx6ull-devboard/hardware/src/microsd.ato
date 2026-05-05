@@ -1,0 +1,93 @@
+"""microSD subsystem: SOFNG TF-015 push-push slot wired for 4-bit SD mode.
+
+SOFNG TF-015 pin map:
+   1  DAT2/RSV   ── DAT[2]
+   2  CD/DAT3/CS ── DAT[3]      (CD function unused — we have a mechanical CD switch)
+   3  CMD/DI     ── CMD
+   4  VDD        ← 3V3 (no UHS-I voltage switch)
+   5  CLK/SCLK   ── CLK
+   6  VSS        ─ board GND
+   7  DAT0/D0    ── DAT[0]
+   8  DAT1/RSV   ── DAT[1]
+   9  CD         → mechanical card-detect switch (low when card inserted)
+   10-13 GND     ─ shell/shield to board GND
+
+Pull-ups per SD Physical Layer Spec §3.2:
+  CMD: 10kΩ → 3V3
+  DAT[3:0]: 47kΩ → 3V3
+  CD switch: 100kΩ → 3V3 (active-low when card inserted)
+
+Datasheet: SOFNG TF-015 mechanical drawing; SD Group SD Spec Part 1 §3.
+"""
+
+#pragma experiment("BRIDGE_CONNECT")
+#pragma experiment("FOR_LOOP")
+
+import ElectricPower
+import ElectricLogic
+import Capacitor
+import Resistor
+
+from "parts/SOFNG_TF_015/SOFNG_TF_015.ato" import SOFNG_TF_015_package
+
+
+module MicroSD:
+    """microSD push-push slot, 4-bit SD mode @ 3.3V signaling."""
+
+    # External interfaces
+    power_3v3 = new ElectricPower
+    power_3v3.required = True
+    cmd = new ElectricLogic
+    clk = new ElectricLogic
+    dat = new ElectricLogic[4]
+    cd  = new ElectricLogic
+
+    slot = new SOFNG_TF_015_package
+
+    # Power & ground
+    slot.VDD ~ power_3v3.hv
+    slot.VSS ~ power_3v3.lv
+    slot.GND ~ power_3v3.lv     # shield/shell
+
+    # CMD line + 10kΩ pull-up
+    slot.CMDDI ~ cmd.line
+    cmd.reference ~ power_3v3
+    r_cmd = new Resistor
+    r_cmd.resistance = 10kohm +/- 5%
+    r_cmd.package = "0402"
+    cmd.line ~> r_cmd ~> power_3v3.hv
+
+    # CLK (no pull-up)
+    slot.CLKSCLK ~ clk.line
+    clk.reference ~ power_3v3
+
+    # DAT[3:0] + 47kΩ pull-ups each
+    slot.DAT0D0    ~ dat[0].line
+    slot.DAT1RSV   ~ dat[1].line
+    slot.DAT2RSV   ~ dat[2].line
+    slot.CDDAT3CS  ~ dat[3].line
+    for d in dat:
+        d.reference ~ power_3v3
+
+    r_dat0 = new Resistor; r_dat0.resistance = 47kohm +/- 5%; r_dat0.package = "0402"
+    r_dat1 = new Resistor; r_dat1.resistance = 47kohm +/- 5%; r_dat1.package = "0402"
+    r_dat2 = new Resistor; r_dat2.resistance = 47kohm +/- 5%; r_dat2.package = "0402"
+    r_dat3 = new Resistor; r_dat3.resistance = 47kohm +/- 5%; r_dat3.package = "0402"
+    dat[0].line ~> r_dat0 ~> power_3v3.hv
+    dat[1].line ~> r_dat1 ~> power_3v3.hv
+    dat[2].line ~> r_dat2 ~> power_3v3.hv
+    dat[3].line ~> r_dat3 ~> power_3v3.hv
+
+    # Card-detect switch + 100kΩ pull-up
+    slot.CD ~ cd.line
+    cd.reference ~ power_3v3
+    r_cd = new Resistor
+    r_cd.resistance = 100kohm +/- 5%
+    r_cd.package = "0402"
+    cd.line ~> r_cd ~> power_3v3.hv
+
+    # VDD decoupling: 100nF + 10µF
+    cap_hf = new Capacitor; cap_hf.capacitance = 100nF +/- 20%; cap_hf.package = "0402"
+    cap_lf = new Capacitor; cap_lf.capacitance = 10uF +/- 20%;  cap_lf.package = "0805"
+    power_3v3.hv ~> cap_hf ~> power_3v3.lv
+    power_3v3.hv ~> cap_lf ~> power_3v3.lv

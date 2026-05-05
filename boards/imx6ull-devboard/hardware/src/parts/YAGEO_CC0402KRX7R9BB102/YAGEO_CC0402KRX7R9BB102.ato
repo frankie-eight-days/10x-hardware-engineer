@@ -1,0 +1,19 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+import is_auto_generated
+
+component YAGEO_CC0402KRX7R9BB102_package:
+    # This trait marks this file as auto-generated
+    # If you want to manually change it, remove the trait
+    trait is_auto_generated<system="ato_part", source="easyeda:C106205", date="2026-05-05T03:24:16.462988+00:00", checksum="d52a57b2b4f93f414285986c16427d1e338a79cca8568530564a05ef10da1280">
+
+    trait is_atomic_part<manufacturer="YAGEO", partnumber="CC0402KRX7R9BB102", footprint="C0402.kicad_mod", symbol="CC0402KRX7R9BB102.kicad_sym", model="C0402_L1.0-W0.5-H0.5.step">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C106205", manufacturer="YAGEO", partno="CC0402KRX7R9BB102">
+    trait has_designator_prefix<prefix="C">
+    trait has_datasheet<datasheet="https://www.lcsc.com/datasheet/lcsc_datasheet_2409272231_YAGEO-CC0402KRX7R9BB102_C106205.pdf">
+
+    # pins
+    pin 1
+    pin 2

@@ -1,0 +1,34 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+import is_auto_generated
+
+component Maxim_Integrated_MAX98357AETE_T_package:
+    # This trait marks this file as auto-generated
+    # If you want to manually change it, remove the trait
+    trait is_auto_generated<system="ato_part", source="easyeda:C910544", date="2026-05-05T03:22:19.135868+00:00", checksum="2aebf958603d68b352162c076e7c53964d496a75317dea13003f2a9b00af770a">
+
+    trait is_atomic_part<manufacturer="Maxim Integrated", partnumber="MAX98357AETE+T", footprint="TQFN-16_L3.0-W3.0-P0.50-BL-EP1.5.kicad_mod", symbol="MAX98357AETE+T.kicad_sym", model="TQFN-16_L3.0-W3.0-P0.50-BL-EP1.5.STEP">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C910544", manufacturer="Maxim Integrated", partno="MAX98357AETE+T">
+    trait has_designator_prefix<prefix="U">
+    trait has_datasheet<datasheet="https://www.lcsc.com/datasheet/lcsc_datasheet_2201242100_Analog-Devices-Inc--Maxim-Integrated-MAX98357AETE-T_C910544.pdf">
+
+    # pins
+    signal BCLK ~ pin 16
+    signal DIN ~ pin 1
+    signal EP ~ pin 17
+    signal GAIN_SLOT ~ pin 2
+    signal GND ~ pin 3
+    GND ~ pin 11
+    GND ~ pin 15
+    signal LRCLK ~ pin 14
+    signal N_C_ ~ pin 5
+    N_C_ ~ pin 6
+    N_C_ ~ pin 12
+    N_C_ ~ pin 13
+    signal OUTN ~ pin 10
+    signal OUTP ~ pin 9
+    signal VDD ~ pin 7
+    VDD ~ pin 8
+    signal nSD_MODE ~ pin 4
