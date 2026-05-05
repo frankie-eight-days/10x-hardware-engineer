@@ -8,6 +8,7 @@ import ElectricLogic
 
 import UART_Base
 import I2S
+import JTAG
 import Electrical
 
 from "network.ato" import Network
@@ -16,6 +17,7 @@ from "usb_uart.ato" import USBUart
 from "audio.ato" import Audio
 from "microsd.ato" import MicroSD
 from "power_input.ato" import PowerInput
+from "debug.ato" import Debug
 from "atopile/microchip-lan8742a/microchip-lan8742a.ato" import RMII
 from "atopile/microchip-lan8742a/microchip-lan8742a.ato" import MDIO
 
@@ -92,3 +94,22 @@ module Board:
     sd.dat[2] ~ usdhc1_dat[2]
     sd.dat[3] ~ usdhc1_dat[3]
     sd.cd ~ sd_cd
+
+    # ---- Debug (JTAG, reset, boot mode, LEDs, coin cell, headers) ----
+    dbg = new Debug
+    jtag_to_mpu       = new JTAG
+    reset_to_mpu      = new ElectricLogic
+    heartbeat_from_mpu = new ElectricLogic
+    boot_mode0_to_mpu  = new ElectricLogic
+    boot_mode1_to_mpu  = new ElectricLogic
+    uart2_to_mpu       = new UART_Base
+    dbg.power_3v3   ~ power_3v3
+    dbg.vbat_to_psu ~ vbat_in
+    dbg.jtag        ~ jtag_to_mpu
+    dbg.reset       ~ reset_to_mpu
+    dbg.heartbeat   ~ heartbeat_from_mpu
+    dbg.boot_mode0  ~ boot_mode0_to_mpu
+    dbg.boot_mode1  ~ boot_mode1_to_mpu
+    dbg.uart_console ~ uart2_to_mpu
+    dbg.speaker_p   ~ speaker_p_pad
+    dbg.speaker_n   ~ speaker_n_pad

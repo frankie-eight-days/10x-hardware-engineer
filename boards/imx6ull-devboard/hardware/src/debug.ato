@@ -1,0 +1,153 @@
+"""Debug subsystem: JTAG header, reset, boot mode DIP, LEDs, coin cell, headers.
+
+Components:
+  - 10-pin 1.27mm Cortex JTAG/SWD header (Wcon)
+  - SMD tactile reset button + 10kΩ pull-up + 100nF debounce
+  - 2-position SMD DIP for BOOT_MODE[1:0] selection
+  - 2x LED indicators (3V3 power-good + MPU heartbeat)
+  - CR2032 coin cell + 1kΩ charge-limit → PowerTree vbat_in
+  - 4-pin 2.54mm UART TTL header (parallel with CH340N console)
+  - 2-pin 2.54mm speaker header (MAX98357A output → speaker)
+
+See docs/subsystems/debug.md for design notes + Cortex 10-pin pinout.
+"""
+
+#pragma experiment("BRIDGE_CONNECT")
+#pragma experiment("FOR_LOOP")
+
+import ElectricPower
+import ElectricLogic
+import Electrical
+import UART_Base
+import JTAG
+import Capacitor
+import Resistor
+import LED
+
+from "atopile/pin-headers/pin-headers.ato" import Male_2_54mm_1x4P_TH
+from "atopile/pin-headers/pin-headers.ato" import Male_2_54mm_1x2P_TH
+
+from "parts/Wcon_1310_1205G0M061CR02/Wcon_1310_1205G0M061CR02.ato" import Wcon_1310_1205G0M061CR02_package
+from "parts/XKB_Connectivity_TS_1187A_B_A_B/XKB_Connectivity_TS_1187A_B_A_B.ato" import XKB_Connectivity_TS_1187A_B_A_B_package
+from "parts/kangshen_DSIC02LSGET/kangshen_DSIC02LSGET.ato" import kangshen_DSIC02LSGET_package
+from "parts/Q_J_CR2032_BS_6_1/Q_J_CR2032_BS_6_1.ato" import Q_J_CR2032_BS_6_1_package
+
+
+module Debug:
+    """JTAG + reset + boot mode + LEDs + coin cell + breakout headers."""
+
+    # External interfaces
+    power_3v3   = new ElectricPower
+    power_3v3.required = True
+    vbat_to_psu = new ElectricPower    # → PowerTree.vbat_in
+
+    jtag        = new JTAG
+    reset       = new ElectricLogic    # POR_B
+    heartbeat   = new ElectricLogic    # MPU GPIO drives this LED
+    boot_mode0  = new ElectricLogic
+    boot_mode1  = new ElectricLogic
+
+    uart_console = new UART_Base       # to MPU UART2 (parallel with CH340N)
+    speaker_p   = new Electrical
+    speaker_n   = new Electrical
+
+    # ---- Reset button + RC debounce ----
+    rst_btn = new XKB_Connectivity_TS_1187A_B_A_B_package
+    r_rst_pu = new Resistor
+    r_rst_pu.resistance = 10kohm +/- 5%
+    r_rst_pu.package = "0402"
+    c_rst_db = new Capacitor
+    c_rst_db.capacitance = 100nF +/- 20%
+    c_rst_db.package = "0402"
+
+    # 4-pin SMD tactile: pins 1,2 (A,B) commoned; pins 3,4 (C,D) commoned;
+    # press shorts the two halves. Wire one half to reset.line, other to GND.
+    rst_btn.A ~ reset.line
+    rst_btn.C ~ power_3v3.lv
+
+    reset.line ~> r_rst_pu ~> power_3v3.hv
+    reset.line ~> c_rst_db ~> power_3v3.lv
+    reset.reference ~ power_3v3
+
+    # ---- JTAG/SWD 10-pin Cortex header (1.27mm SMD) ----
+    jtag_hdr = new Wcon_1310_1205G0M061CR02_package
+    # Per ARM Cortex 10-pin debug spec:
+    #  1 VTREF       2 SWDIO/TMS
+    #  3 GND         4 SWCLK/TCK
+    #  5 GND         6 SWO/TDO
+    #  7 KEY (nc)    8 NC/TDI
+    #  9 GNDDetect  10 nSRST
+    jtag_hdr.VTREF     ~ power_3v3.hv
+    jtag_hdr.GND1      ~ power_3v3.lv
+    jtag_hdr.GND2      ~ power_3v3.lv
+    jtag_hdr.GNDDETECT ~ power_3v3.lv
+
+    jtag_hdr.SWDIO_TMS ~ jtag.tms.line
+    jtag_hdr.SWCLK_TCK ~ jtag.tck.line
+    jtag_hdr.SWO_TDO   ~ jtag.tdo.line
+    jtag_hdr.TDI       ~ jtag.tdi.line
+    jtag_hdr.NSRST     ~ reset.line
+
+    jtag.tms.reference ~ power_3v3
+    jtag.tck.reference ~ power_3v3
+    jtag.tdo.reference ~ power_3v3
+    jtag.tdi.reference ~ power_3v3
+    jtag.vtref ~ power_3v3
+
+    # ---- BOOT_MODE 2-position DIP switch ----
+    # Each switch shorts to GND when ON. 10kΩ pull-up to 3V3 sets default HIGH.
+    # See docs for boot mode truth table.
+    boot_dip = new kangshen_DSIC02LSGET_package
+    r_bm0_pu = new Resistor; r_bm0_pu.resistance = 10kohm +/- 5%; r_bm0_pu.package = "0402"
+    r_bm1_pu = new Resistor; r_bm1_pu.resistance = 10kohm +/- 5%; r_bm1_pu.package = "0402"
+
+    # DSIC02LSGET pin pairs: SW1 = pins 1↔4 (SW1A↔SW1B), SW2 = pins 2↔3 (SW2A↔SW2B)
+    # Each DIP closes its pair to GND, default pulled to 3V3 by 10kΩ.
+    boot_dip.SW1A ~ boot_mode1.line
+    boot_dip.SW1B ~ power_3v3.lv
+    boot_dip.SW2A ~ boot_mode0.line
+    boot_dip.SW2B ~ power_3v3.lv
+
+    boot_mode0.line ~> r_bm0_pu ~> power_3v3.hv
+    boot_mode1.line ~> r_bm1_pu ~> power_3v3.hv
+    boot_mode0.reference ~ power_3v3
+    boot_mode1.reference ~ power_3v3
+
+    # ---- Status LEDs ----
+    # Both ~2 mA at 3V3 (R = (3.3-2.0)/2mA = 650Ω → 680Ω). LED can_bridge anode→cathode.
+    led_pwr = new LED
+    r_led_pwr = new Resistor
+    r_led_pwr.resistance = 680ohm +/- 5%
+    r_led_pwr.package = "0402"
+    power_3v3.hv ~> r_led_pwr ~> led_pwr ~> power_3v3.lv
+
+    led_hb = new LED
+    r_led_hb = new Resistor
+    r_led_hb.resistance = 680ohm +/- 5%
+    r_led_hb.package = "0402"
+    heartbeat.line ~> r_led_hb ~> led_hb ~> power_3v3.lv
+    heartbeat.reference ~ power_3v3
+
+    # ---- Coin cell + 1kΩ charge limit → vbat_to_psu ----
+    cell = new Q_J_CR2032_BS_6_1_package
+    r_cell = new Resistor
+    r_cell.resistance = 1kohm +/- 5%
+    r_cell.package = "0402"
+    # Cell+ → 1kΩ → vbat_to_psu.hv (PowerTree's OR handles the rest)
+    cell.POS ~> r_cell ~> vbat_to_psu.hv
+    cell.NEG ~ vbat_to_psu.lv
+
+    # ---- 4-pin TTL UART header (GND, 3V3, TX_OUT, RX_IN) ----
+    hdr_uart = new Male_2_54mm_1x4P_TH
+    # Pin order on silkscreen (from base outward): GND, 3V3, TX, RX
+    hdr_uart.pins[0] ~ power_3v3.lv                  # pin 1: GND
+    hdr_uart.pins[1] ~ power_3v3.hv                  # pin 2: 3V3
+    hdr_uart.pins[2] ~ uart_console.tx.line          # pin 3: TX (from MPU)
+    hdr_uart.pins[3] ~ uart_console.rx.line          # pin 4: RX (to MPU)
+    uart_console.tx.reference ~ power_3v3
+    uart_console.rx.reference ~ power_3v3
+
+    # ---- 2-pin speaker header ----
+    hdr_spk = new Male_2_54mm_1x2P_TH
+    hdr_spk.pins[0] ~ speaker_p
+    hdr_spk.pins[1] ~ speaker_n

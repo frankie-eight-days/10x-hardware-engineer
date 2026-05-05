@@ -1,0 +1,23 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+import is_auto_generated
+
+component kangshen_DSIC02LSGET_package:
+    # This trait marks this file as auto-generated
+    # If you want to manually change it, remove the trait
+    trait is_auto_generated<system="ato_part", source="easyeda:C3293152", date="2026-05-05T03:40:40.673404+00:00", checksum="bf404aaadf87b8c08bc310a00469c89269b1c2f14f38e08e05fd069325e7ff71">
+
+    trait is_atomic_part<manufacturer="kangshen", partnumber="DSIC02LSGET", footprint="SW-SMD_DSIC02LSGET.kicad_mod", symbol="DSIC02LSGET_C3293152.kicad_sym", model="SW-SMD_DSIC02LSGET.STEP">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C3293152", manufacturer="kangshen", partno="DSIC02LSGET">
+    trait has_designator_prefix<prefix="SW">
+    trait has_datasheet<datasheet="https://wmsc.lcsc.com/wmsc/upload/file/pdf/v2/lcsc/2207131800_kangshen-DSIC02LSGET_C3293152.pdf">
+
+    # pins — DSIC02LSGET 2-pos DIP. Convention pin pairs:
+    #   Switch 1: pin 1 ↔ pin 4 (closes when DIP1 ON)
+    #   Switch 2: pin 2 ↔ pin 3 (closes when DIP2 ON)
+    signal SW1A ~ pin 1
+    signal SW2A ~ pin 2
+    signal SW2B ~ pin 3
+    signal SW1B ~ pin 4

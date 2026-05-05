@@ -1,0 +1,27 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+import is_auto_generated
+
+component Wcon_1310_1205G0M061CR02_package:
+    # This trait marks this file as auto-generated
+    # If you want to manually change it, remove the trait
+    trait is_auto_generated<system="ato_part", source="easyeda:C721880", date="2026-05-05T03:40:42.692762+00:00", checksum="7181fb21499af7a0b369a4ec8db34804251dcaf39eefa609c38ec9ec71fe926e">
+
+    trait is_atomic_part<manufacturer="Wcon", partnumber="1310-1205G0M061CR02", footprint="CONN-SMD_1310-1205G0M061CR02.kicad_mod", symbol="1310-1205G0M061CR02.kicad_sym", model="CONN-SMD_1310-1205G0M061CR02.step">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C721880", manufacturer="Wcon", partno="1310-1205G0M061CR02">
+    trait has_designator_prefix<prefix="CN">
+    trait has_datasheet<datasheet="https://www.lcsc.com/datasheet/lcsc_datasheet_2008301606_Wcon-1310-1205G0M061CR02_C721880.pdf">
+
+    # pins — named per ARM Cortex 10-pin debug standard
+    signal VTREF      ~ pin 1
+    signal SWDIO_TMS  ~ pin 2
+    signal GND1       ~ pin 3
+    signal SWCLK_TCK  ~ pin 4
+    signal GND2       ~ pin 5
+    signal SWO_TDO    ~ pin 6
+    signal KEY        ~ pin 7
+    signal TDI        ~ pin 8
+    signal GNDDETECT  ~ pin 9
+    signal NSRST      ~ pin 10
