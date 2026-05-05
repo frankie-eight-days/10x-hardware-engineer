@@ -1,0 +1,138 @@
+(footprint "cjiang_FNR5020S2R2MT:IND-SMD_L5.0-W5.0_FNR5012S"
+	(version 20241229)
+	(generator "faebryk_convert")
+	(generator_version "v5")
+	(layer "F.Cu")
+	(tedit "5DC5F6A4")
+	(uuid "f6ca462b-59d5-44ef-8c46-6bc5a19fb7c4")
+	(property "Reference" "REF**"
+		(at 0 -4)
+		(layer "F.SilkS")
+		(uuid "a18eef26-b422-4418-ae39-847dfb2fde1e")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "IND-SMD_L5.0-W5.0_FNR5012S"
+		(at 0 4)
+		(layer "F.Fab")
+		(uuid "5b75a2b9-9753-4378-8aab-fb64f5584a61")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(attr smd)
+	(fp_circle
+		(center -2.5 2.5)
+		(end -2.47 2.5)
+		(stroke
+			(width 0.06)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(locked no)
+		(uuid "1428934b-7caa-4e71-a531-baf727023215")
+	)
+	(fp_line
+		(start -2.5 2.6)
+		(end 2.5 2.6)
+		(stroke
+			(width 0.25)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(layers "F.SilkS")
+		(locked no)
+		(uuid "c5ba8510-fd6a-497c-99c0-59073aeb970e")
+	)
+	(fp_line
+		(start -2.5 -2.6)
+		(end -2.5 -2.44)
+		(stroke
+			(width 0.25)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(layers "F.SilkS")
+		(locked no)
+		(uuid "c7733c4a-25c7-4033-b770-4b095849b4bf")
+	)
+	(fp_line
+		(start -2.5 -2.6)
+		(end 2.5 -2.6)
+		(stroke
+			(width 0.25)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(layers "F.SilkS")
+		(locked no)
+		(uuid "1a1f4dde-5adf-4036-bd03-69653270241a")
+	)
+	(fp_line
+		(start -2.5 2.43)
+		(end -2.5 2.6)
+		(stroke
+			(width 0.25)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(layers "F.SilkS")
+		(locked no)
+		(uuid "22f2cef8-a94e-4d7a-be53-6b816deb3d79")
+	)
+	(fp_line
+		(start 2.5 2.6)
+		(end 2.5 2.43)
+		(stroke
+			(width 0.25)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(layers "F.SilkS")
+		(locked no)
+		(uuid "b6d56208-e013-4730-a1a6-b9408861609d")
+	)
+	(fp_line
+		(start 2.5 -2.44)
+		(end 2.5 -2.6)
+		(stroke
+			(width 0.25)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(layers "F.SilkS")
+		(locked no)
+		(uuid "a108d456-6765-46ce-9b17-3974fbcd53fd")
+	)
+	(pad "1" smd rect
+		(at -2 0 0)
+		(size 1.7 4.5)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+		(uuid "dfa64a29-3f85-4252-8443-db8043bbd882")
+	)
+	(pad "2" smd rect
+		(at 2 0 0)
+		(size 1.7 4.5)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+		(uuid "d56ef96f-6fe3-41d6-8711-26f8b07d68b0")
+	)
+	(model "${KIPRJMOD}/../../src/parts/cjiang_FNR5020S2R2MT/IND-SMD_L5.0-W5.0-H4.0.step"
+		(offset
+			(xyz 0 0 -0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 270)
+		)
+	)
+	(embedded_fonts no)
+)

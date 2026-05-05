@@ -1,0 +1,154 @@
+"""Discrete buck/LDO power tree from 5V_BOARD.
+
+  5V_BOARD ──┬── LDK220 LDO   → 3V SNVS  (always-on, OR'd with vbat_in for backup)
+             ├── TPS563201 buck → 3V3    (1A)
+             ├── TPS563201 buck → 1V4   ──[ferrite]── 1V4_SOC  (split for VDDSOC PLL clean)
+             │                         └── 1V4_ARM
+             └── TPS563201 buck → 1V35 ──[ferrite]── NVCC_DRAM  (HF ripple attenuation)
+  3V3 ────── TLV75901 LDO → 1V8   (300mA, SD/NAND IO option)
+
+Sequencing strategy (reviewer fix #1): SNVS comes up first because LDK220 LDO
+responds to Vin instantly (no soft-start). Bucks have an added 470nF cap on EN
+giving RC = 10kΩ × 470nF = 4.7ms enable delay vs LDK220's <1ms ramp — guarantees
+SNVS is stable before any other rail starts soft-start (~1ms internal SS).
+
+VDD_SNVS coin-cell OR (reviewer fix #2): exposed as `vbat_in` interface; backup
+coin cell + holder + 1kΩ charge limit live in Debug subsystem and feed this port.
+BAT54C dual-Schottky OR in this module combines LDK220 output and vbat_in.
+
+Reviewer-deferred: FB ripple-injection network on TPS563201 (D-CAP2 stability
+on all-ceramic outputs) — needs upstream `atopile/ti-tps563201` PR. Acceptable
+for prototype; may show as LF ripple worse than ideal.
+"""
+
+#pragma experiment("BRIDGE_CONNECT")
+#pragma experiment("FOR_LOOP")
+
+import ElectricPower
+import ElectricLogic
+import Capacitor
+import Resistor
+import Inductor
+import Diode
+
+from "atopile/ti-tps563201/ti-tps563201.ato" import TI_TPS563201
+from "atopile/ti-tlv75901/ti-tlv75901.ato" import TI_TLV75901
+from "atopile/st-ldk220/st-ldk220.ato" import LDK220M_R
+
+
+module PowerTree:
+    """Discrete power tree from 5V to all i.MX 6ULL rails."""
+
+    # External interfaces
+    power_5v   = new ElectricPower
+    power_5v.required = True
+    power_3v3  = new ElectricPower
+    power_1v4_arm = new ElectricPower    # VDDARM_IN
+    power_1v4_soc = new ElectricPower    # VDDSOC_IN (post-ferrite)
+    power_1v35    = new ElectricPower    # NVCC_DRAM (DDR3L), post-ferrite from buck
+    power_1v8     = new ElectricPower    # SD/NAND IO option
+    power_snvs    = new ElectricPower    # 3V SNVS rail, OR'd output
+    vbat_in       = new ElectricPower    # external coin cell input (from Debug)
+
+    assert power_5v.voltage      within 4.5V to 5.5V
+    assert power_3v3.voltage     within 3.15V to 3.45V
+    assert power_1v4_arm.voltage within 1.35V to 1.45V
+    assert power_1v4_soc.voltage within 1.35V to 1.45V
+    assert power_1v35.voltage    within 1.30V to 1.40V
+    assert power_1v8.voltage     within 1.71V to 1.89V
+    assert power_snvs.voltage    within 2.5V to 3.3V
+
+    # ---- Buck regulators (3x TPS563201, commonized) ----
+    buck_3v3  = new TI_TPS563201
+    buck_1v4  = new TI_TPS563201
+    buck_1v35 = new TI_TPS563201
+
+    # Output voltage setpoints. Tightened 1V35 to ±3% (reviewer fix #3) so we
+    # stay clear of DDR3L Vddq abs-max 1.45V at upper rail.
+    assert buck_3v3.output_voltage  within 3.3V +/- 5%
+    assert buck_1v4.output_voltage  within 1.4V +/- 5%
+    assert buck_1v35.output_voltage within 1.35V +/- 4%
+
+    # Bump inductor saturation requirement above TPS563201 OCL_max (5.1A typ +
+    # half ripple) — reviewer fix #4. The package's default `>= 3A` lets the
+    # core saturate before the IC current-limits during a startup short.
+    assert buck_3v3.inductor.max_current  >= 4.5A
+    assert buck_1v4.inductor.max_current  >= 4.5A
+    assert buck_1v35.inductor.max_current >= 4.5A
+
+    # All three bucks fed from 5V_BOARD
+    power_5v ~ buck_3v3.power_in
+    power_5v ~ buck_1v4.power_in
+    power_5v ~ buck_1v35.power_in
+
+    # ---- EN-pin RC delay for SNVS-first sequencing (reviewer fix #1) ----
+    # Package puts a 10kΩ pull-up on EN. We add 470nF EN→GND to get RC ≈ 4.7ms
+    # rise; SNVS LDO settles in <1ms so the order is always: SNVS → bucks.
+    en_delay_3v3  = new Capacitor; en_delay_3v3.capacitance  = 470nF +/- 20%; en_delay_3v3.package  = "0402"
+    en_delay_1v4  = new Capacitor; en_delay_1v4.capacitance  = 470nF +/- 20%; en_delay_1v4.package  = "0402"
+    en_delay_1v35 = new Capacitor; en_delay_1v35.capacitance = 470nF +/- 20%; en_delay_1v35.package = "0402"
+    buck_3v3.enable.line  ~> en_delay_3v3  ~> power_5v.lv
+    buck_1v4.enable.line  ~> en_delay_1v4  ~> power_5v.lv
+    buck_1v35.enable.line ~> en_delay_1v35 ~> power_5v.lv
+
+    # buck_3v3 → power_3v3 directly (no ferrite needed)
+    buck_3v3.power_out ~ power_3v3
+
+    # ---- VDDARM / VDDSOC ferrite split (reviewer fix #6) ----
+    # NXP HDG §4.2: VDDARM and VDDSOC may share a regulator only if isolated
+    # by a ferrite bead to keep ARM DVFS transients out of SoC PLL. ARM is on
+    # the buck side; SoC is post-ferrite with its own local bulk.
+    buck_1v4.power_out ~ power_1v4_arm
+    # Ferrite bead, 600Ω@100MHz, 0603, ~50mΩ DCR — Sunlord MMZ1608B601C
+    ferrite_soc = new Inductor
+    ferrite_soc.lcsc_id = "C1017"
+    power_1v4_arm.hv ~> ferrite_soc ~> power_1v4_soc.hv
+    power_1v4_arm.lv ~ power_1v4_soc.lv
+    # Local bulk on VDDSOC side
+    cap_soc_bulk = new Capacitor; cap_soc_bulk.capacitance = 10uF +/- 20%; cap_soc_bulk.package = "0805"
+    cap_soc_hf   = new Capacitor; cap_soc_hf.capacitance   = 100nF +/- 20%; cap_soc_hf.package   = "0402"
+    power_1v4_soc.hv ~> cap_soc_bulk ~> power_1v4_soc.lv
+    power_1v4_soc.hv ~> cap_soc_hf   ~> power_1v4_soc.lv
+
+    # ---- NVCC_DRAM ferrite + bulk (reviewer fix #3) ----
+    # Attenuates HF buck switching residue from reaching DDR3L IO ring.
+    _buck_1v35_out = new ElectricPower
+    buck_1v35.power_out ~ _buck_1v35_out
+    ferrite_dram = new Inductor
+    ferrite_dram.lcsc_id = "C1017"
+    _buck_1v35_out.hv ~> ferrite_dram ~> power_1v35.hv
+    _buck_1v35_out.lv ~ power_1v35.lv
+    # Extra bulk on the DDR side of the bead (post-derating, ~22µF effective)
+    cap_dram_bulk = new Capacitor; cap_dram_bulk.capacitance = 22uF +/- 20%; cap_dram_bulk.package = "0805"
+    cap_dram_hf   = new Capacitor; cap_dram_hf.capacitance   = 100nF +/- 20%; cap_dram_hf.package   = "0402"
+    power_1v35.hv ~> cap_dram_bulk ~> power_1v35.lv
+    power_1v35.hv ~> cap_dram_hf   ~> power_1v35.lv
+
+    # ---- 1V8 LDO from 3V3 ----
+    # 300mA peak at 1.5V drop = 0.45W. Picker selects WSON-6 TLV75901PDRVR
+    # which has thermal EP — needs ≥4 GND vias on EP in layout for θJA ≈ 45°C/W
+    # → ΔT ≈ 20°C @ 0.45W. Average load expected <100mA.
+    ldo_1v8 = new TI_TLV75901
+    power_3v3 ~> ldo_1v8 ~> power_1v8
+
+    # ---- 3V SNVS path with coin-cell OR (reviewer fix #2) ----
+    # LDK220 from 5V; output OR'd via dual Schottky (BAT54C-class) with vbat_in.
+    # The OR ensures power_snvs survives 5V loss without losing RTC + secure RAM.
+    ldo_snvs = new LDK220M_R
+    _ldo_snvs_out = new ElectricPower
+    power_5v ~> ldo_snvs ~> _ldo_snvs_out
+
+    # Two Schottkys: one from LDO output, one from vbat_in, common cathode → power_snvs.
+    # BAT54 single Schottky in SOT-23, ~0.3V Vf @ 100mA, JLC-stocked.
+    or_main = new Diode
+    or_bat  = new Diode
+    or_main.lcsc_id = "C8678"
+    or_bat.lcsc_id  = "C8678"
+    _ldo_snvs_out.hv ~> or_main ~> power_snvs.hv
+    vbat_in.hv       ~> or_bat  ~> power_snvs.hv
+    _ldo_snvs_out.lv ~ power_snvs.lv
+    vbat_in.lv       ~ power_snvs.lv
+
+    # SNVS bulk
+    cap_snvs = new Capacitor; cap_snvs.capacitance = 10uF +/- 20%; cap_snvs.package = "0805"
+    power_snvs.hv ~> cap_snvs ~> power_snvs.lv

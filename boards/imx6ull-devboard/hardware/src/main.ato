@@ -7,6 +7,7 @@ import ElectricPower
 import ElectricLogic
 
 from "network.ato" import Network
+from "power_tree.ato" import PowerTree
 from "atopile/microchip-lan8742a/microchip-lan8742a.ato" import RMII
 from "atopile/microchip-lan8742a/microchip-lan8742a.ato" import MDIO
 
@@ -14,12 +15,28 @@ from "atopile/microchip-lan8742a/microchip-lan8742a.ato" import MDIO
 module Board:
     """i.MX 6ULL dev board v0."""
 
-    # Top-level rails the rest of the design will tap into.
-    power_5v  = new ElectricPower
-    power_3v3 = new ElectricPower
+    # Top-level rails (sourced by PowerTree)
+    power_5v       = new ElectricPower
+    power_3v3      = new ElectricPower
+    power_1v4_arm  = new ElectricPower
+    power_1v4_soc  = new ElectricPower
+    power_1v35     = new ElectricPower
+    power_1v8      = new ElectricPower
+    power_snvs     = new ElectricPower
+    vbat_in        = new ElectricPower    # from coin cell in Debug
 
-    assert power_5v.voltage  within 4.75V to 5.25V
-    assert power_3v3.voltage within 3.15V to 3.45V
+    assert power_5v.voltage within 4.75V to 5.25V
+
+    # ---- Power Tree ----
+    psu = new PowerTree
+    psu.power_5v      ~ power_5v
+    psu.power_3v3     ~ power_3v3
+    psu.power_1v4_arm ~ power_1v4_arm
+    psu.power_1v4_soc ~ power_1v4_soc
+    psu.power_1v35    ~ power_1v35
+    psu.power_1v8     ~ power_1v8
+    psu.power_snvs    ~ power_snvs
+    psu.vbat_in       ~ vbat_in
 
     # ---- Ethernet ----
     network = new Network
@@ -28,6 +45,6 @@ module Board:
     enet_reset_from_mpu = new ElectricLogic   # MPU drives, active low
 
     network.power_3v3 ~ power_3v3
-    network.rmii  ~ rmii_to_mpu     # to ENET1 on MPU
-    network.mdio  ~ mdio_to_mpu     # to MPU MDIO
+    network.rmii  ~ rmii_to_mpu
+    network.mdio  ~ mdio_to_mpu
     network.reset ~ enet_reset_from_mpu

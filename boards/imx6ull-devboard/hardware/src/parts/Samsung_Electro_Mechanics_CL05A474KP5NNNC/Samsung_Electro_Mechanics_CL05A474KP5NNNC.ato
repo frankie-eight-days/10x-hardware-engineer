@@ -1,0 +1,21 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+import is_auto_generated
+
+component Samsung_Electro_Mechanics_CL05A474KP5NNNC_package:
+    """470nF (474) ±10% 10V"""
+
+    # This trait marks this file as auto-generated
+    # If you want to manually change it, remove the trait
+    trait is_auto_generated<system="ato_part", source="easyeda:C47339", date="2026-05-05T03:15:17.743170+00:00", checksum="ff038faaa3898d3416c7d0a25bffce7845971ef320afa531b5b4fe83e2122655">
+
+    trait is_atomic_part<manufacturer="Samsung Electro-Mechanics", partnumber="CL05A474KP5NNNC", footprint="C0402.kicad_mod", symbol="CL05A474KP5NNNC.kicad_sym", model="C0402_L1.0-W0.5-H0.5.step">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C47339", manufacturer="Samsung Electro-Mechanics", partno="CL05A474KP5NNNC">
+    trait has_designator_prefix<prefix="C">
+    trait has_datasheet<datasheet="https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL05A474KP5NNNC_C47339.pdf">
+
+    # pins
+    pin 1
+    pin 2

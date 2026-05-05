@@ -1,0 +1,19 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+import is_auto_generated
+
+component Viking_Tech_ARG02FTC3091_package:
+    # This trait marks this file as auto-generated
+    # If you want to manually change it, remove the trait
+    trait is_auto_generated<system="ato_part", source="easyeda:C284497", date="2026-05-05T02:35:38.922116+00:00", checksum="3afa757a283063dfadbdd3072e5bb1c7551247245b8fa0467a6e605606d2ea88">
+
+    trait is_atomic_part<manufacturer="Viking Tech", partnumber="ARG02FTC3091", footprint="R0402.kicad_mod", symbol="ARG02FTC3091.kicad_sym", model="R0402_L1.0-W0.5-H0.4.step">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C284497", manufacturer="Viking Tech", partno="ARG02FTC3091">
+    trait has_designator_prefix<prefix="R">
+    trait has_datasheet<datasheet="https://wmsc.lcsc.com/wmsc/upload/file/pdf/v2/lcsc/2304140030_Viking-Tech-ARG02FTC3091_C284497.pdf">
+
+    # pins
+    pin 2
+    pin 1

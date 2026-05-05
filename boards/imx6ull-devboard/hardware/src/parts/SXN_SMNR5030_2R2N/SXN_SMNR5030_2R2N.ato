@@ -1,0 +1,19 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+import is_auto_generated
+
+component SXN_SMNR5030_2R2N_package:
+    # This trait marks this file as auto-generated
+    # If you want to manually change it, remove the trait
+    trait is_auto_generated<system="ato_part", source="easyeda:C189797", date="2026-05-05T03:15:15.754163+00:00", checksum="6f22ce58cb5e9809ebdc28d2cc39912049c21df38701900136f740781530746a">
+
+    trait is_atomic_part<manufacturer="SXN", partnumber="SMNR5030-2R2N", footprint="IND-SMD_L5.0-W5.0_SMNR5030.kicad_mod", symbol="SMNR5030-2R2N.kicad_sym", model="IND-SMD_L5.0-W5.0-H1.2_SMNR5030.step">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C189797", manufacturer="SXN", partno="SMNR5030-2R2N">
+    trait has_designator_prefix<prefix="L">
+    trait has_datasheet<datasheet="https://www.lcsc.com/datasheet/lcsc_datasheet_2108131730_SXN-Shun-Xiang-Nuo-Elec-SMNR5030-2R2N_C189797.pdf">
+
+    # pins
+    pin 2
+    pin 1
