@@ -17,14 +17,14 @@ component NXP_Semicon_MCIMX6Y2CVM08AB_package:
     # pins
     signal ADC_VREFH ~ pin M13
     signal BOOT_MODE0 ~ pin T10
-    signal BOOT_MODE1 ~ pin 10
+    signal BOOT_MODE1 ~ pin U10
     signal CCM_CLK1_N ~ pin P16
     signal CCM_CLK1_P ~ pin P17
-    signal CCM_PMIC_STBY_REQ ~ pin 9
+    signal CCM_PMIC_STBY_REQ ~ pin U9
     signal CSI_DATA00 ~ pin E4
     signal CSI_DATA01 ~ pin E3
     signal CSI_DATA02 ~ pin E2
-    signal CSI_DATA03 ~ pin D18
+    signal CSI_DATA03 ~ pin E1
     signal CSI_DATA04 ~ pin D4
     signal CSI_DATA05 ~ pin D3
     signal CSI_DATA06 ~ pin D2
@@ -53,17 +53,17 @@ component NXP_Semicon_MCIMX6Y2CVM08AB_package:
     signal DRAM_CS0_B ~ pin N2
     signal DRAM_CS1_B ~ pin H5
     signal DRAM_DATA00 ~ pin T4
-    signal DRAM_DATA01 ~ pin 6
+    signal DRAM_DATA01 ~ pin U6
     signal DRAM_DATA02 ~ pin T6
-    signal DRAM_DATA03 ~ pin 7
-    signal DRAM_DATA04 ~ pin 8
+    signal DRAM_DATA03 ~ pin U7
+    signal DRAM_DATA04 ~ pin U8
     signal DRAM_DATA05 ~ pin T8
     signal DRAM_DATA06 ~ pin T5
-    signal DRAM_DATA07 ~ pin 4
-    signal DRAM_DATA08 ~ pin 2
-    signal DRAM_DATA09 ~ pin 3
-    signal DRAM_DATA10 ~ pin 5
-    signal DRAM_DATA11 ~ pin 4
+    signal DRAM_DATA07 ~ pin U4
+    signal DRAM_DATA08 ~ pin U2
+    signal DRAM_DATA09 ~ pin U3
+    signal DRAM_DATA10 ~ pin U5
+    signal DRAM_DATA11 ~ pin R4
     signal DRAM_DATA12 ~ pin P5
     signal DRAM_DATA13 ~ pin P3
     signal DRAM_DATA14 ~ pin R2
@@ -73,7 +73,7 @@ component NXP_Semicon_MCIMX6Y2CVM08AB_package:
     signal DRAM_ODT0 ~ pin N1
     signal DRAM_ODT1 ~ pin F1
     signal DRAM_RAS_B ~ pin M5
-    signal DRAM_RESET ~ pin 4
+    signal DRAM_RESET ~ pin G4
     signal DRAM_SDBA0 ~ pin M1
     signal DRAM_SDBA1 ~ pin H1
     signal DRAM_SDBA2 ~ pin K2
@@ -174,7 +174,7 @@ component NXP_Semicon_MCIMX6Y2CVM08AB_package:
     NVCC_DRAM ~ pin K6
     NVCC_DRAM ~ pin J6
     NVCC_DRAM ~ pin H6
-    NVCC_DRAM ~ pin 6
+    NVCC_DRAM ~ pin G6
     signal NVCC_DRAM_2P5 ~ pin N6
     signal NVCC_ENET ~ pin F13
     signal NVCC_GPIO ~ pin J13
@@ -186,7 +186,7 @@ component NXP_Semicon_MCIMX6Y2CVM08AB_package:
     signal ONOFF ~ pin R8
     signal POR_B ~ pin P8
     signal RTC_XTALI ~ pin T11
-    signal RTC_XTALO ~ pin 11
+    signal RTC_XTALO ~ pin U11
     signal SD1_CLK ~ pin C1
     signal SD1_CMD ~ pin C2
     signal SD1_DATA0 ~ pin B3
@@ -214,20 +214,20 @@ component NXP_Semicon_MCIMX6Y2CVM08AB_package:
     signal UART2_RX_DATA ~ pin J16
     signal UART2_TX_DATA ~ pin J17
     signal UART3_CTS_B ~ pin H15
-    signal UART3_RTS_B ~ pin 14
+    signal UART3_RTS_B ~ pin G14
     signal UART3_RX_DATA ~ pin H16
     signal UART3_TX_DATA ~ pin H17
     signal UART4_RX_DATA ~ pin G16
     signal UART4_TX_DATA ~ pin G17
-    signal UART5_RX_DATA ~ pin 13
+    signal UART5_RX_DATA ~ pin G13
     signal UART5_TX_DATA ~ pin F17
-    signal USB_OTG1_CHD_B ~ pin 16
+    signal USB_OTG1_CHD_B ~ pin U16
     signal USB_OTG1_DN ~ pin T15
-    signal USB_OTG1_DP ~ pin 15
+    signal USB_OTG1_DP ~ pin U15
     signal USB_OTG1_VBUS ~ pin T12
     signal USB_OTG2_DN ~ pin T13
-    signal USB_OTG2_DP ~ pin 13
-    signal USB_OTG2_VBUS ~ pin 12
+    signal USB_OTG2_DP ~ pin U13
+    signal USB_OTG2_VBUS ~ pin U12
     signal VDDA_ADC_3P3 ~ pin L13
     signal VDD_ARM_CAP ~ pin H11
     VDD_ARM_CAP ~ pin G11
@@ -255,22 +255,22 @@ component NXP_Semicon_MCIMX6Y2CVM08AB_package:
     VDD_SOC_IN ~ pin H10
     VDD_SOC_IN ~ pin H9
     signal VDD_USB_CAP ~ pin R12
-    signal VSS ~ pin 17
-    VSS ~ pin 14
+    signal VSS ~ pin R17
+    VSS ~ pin U14
     VSS ~ pin U1
     VSS ~ pin T14
-    VSS ~ pin 17
+    VSS ~ pin U17
     VSS ~ pin R16
     VSS ~ pin R11
     VSS ~ pin R7
-    VSS ~ pin 5
+    VSS ~ pin G5
     VSS ~ pin R3
     VSS ~ pin N5
     VSS ~ pin N3
-    VSS ~ pin 11
-    VSS ~ pin 10
-    VSS ~ pin 9
-    VSS ~ pin 8
+    VSS ~ pin M11
+    VSS ~ pin M10
+    VSS ~ pin M9
+    VSS ~ pin M8
     VSS ~ pin M7
     VSS ~ pin L12
     VSS ~ pin L7
@@ -282,10 +282,10 @@ component NXP_Semicon_MCIMX6Y2CVM08AB_package:
     VSS ~ pin J5
     VSS ~ pin H12
     VSS ~ pin H7
-    VSS ~ pin 15
+    VSS ~ pin G15
     VSS ~ pin G12
     VSS ~ pin G7
-    VSS ~ pin 5
+    VSS ~ pin R5
     VSS ~ pin G3
     VSS ~ pin F12
     VSS ~ pin F11

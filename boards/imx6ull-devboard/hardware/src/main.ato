@@ -40,6 +40,18 @@ module Board:
 
     assert power_5v.voltage within 4.75V to 5.25V
 
+    # Force human-readable net names on the main rails so the PCB writer doesn't
+    # auto-generate colliding "hv"/"lv"/"cathode" names that crash the writer.
+    power_5v.hv.override_net_name        = "VCC_5V"
+    power_3v3.hv.override_net_name       = "VCC_3V3"
+    power_1v4_arm.hv.override_net_name   = "VCC_1V4_ARM"
+    power_1v4_soc.hv.override_net_name   = "VCC_1V4_SOC"
+    power_1v35.hv.override_net_name      = "VCC_NVCC_DRAM"
+    power_1v8.hv.override_net_name       = "VCC_1V8"
+    power_snvs.hv.override_net_name      = "VCC_SNVS"
+    vbat_in.hv.override_net_name         = "VBAT"
+    power_5v.lv.override_net_name        = "GND"
+
     # ---- Power Input (USB-C PD + bench supply) ----
     pin_in = new PowerInput
     pin_in.power_5v_out ~ power_5v
