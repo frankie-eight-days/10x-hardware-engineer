@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "artifacts": {
+    "skill:atopile/ato": {
+      "type": "skill",
+      "slug": "ato",
+      "author": "atopile",
+      "name": "ato",
+      "installedAt": "2026-05-05T01:37:25.667Z",
+      "files": [
+        ".claude/skills/ato/SKILL.md"
+      ]
+    }
+  }
+}

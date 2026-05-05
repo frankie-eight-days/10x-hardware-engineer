@@ -1,6 +1,8 @@
 # atopile knowledge pack — i.MX 6ULL board
 
-Auto-loaded when working in this directory. Distilled from atopile's official Claude skill plus project-specific context. Authoritative source for syntax: https://raw.githubusercontent.com/atopile/atopile/main/.claude/skills/ato-language/SKILL.md
+Auto-loaded when working in this directory. **Project-specific layer** on top of the **official atopile skill** installed at `.claude/skills/ato/SKILL.md` (1505-line authoritative reference auto-loaded for the whole repo, installed via `npx ai-builder add skill atopile/ato`). This file adds i.MX 6ULL context that the official skill can't have. Defer to the official skill on syntax conflicts.
+
+Authoritative source if the skill goes stale: https://raw.githubusercontent.com/atopile/atopile/main/.claude/skills/ato-language/SKILL.md
 
 Current atopile: **v0.15.7 (April 2026)**. Docs URL slug is pinned to `atopile-0.14.x` even for newer point releases — this is correct, not stale.
 
