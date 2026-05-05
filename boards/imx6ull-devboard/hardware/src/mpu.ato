@@ -14,6 +14,7 @@ per the canonical i.MX 6ULL EVK assignment (TODO: confirm with research).
 
 import ElectricPower
 import ElectricLogic
+import Electrical
 import I2S
 import UART_Base
 import JTAG
@@ -45,6 +46,7 @@ interface DDR3Bus:
     cas_b  = new ElectricLogic        # DRAM_CAS_B
     we_b   = new ElectricLogic        # DRAM_SDWE_B
     reset_b = new ElectricLogic       # DRAM_RESET
+    vref   = new Electrical           # DRAM_VREF (0.5×VDDQ to VREFCA + VREFDQ)
 
 
 module MPU:
@@ -178,7 +180,8 @@ module MPU:
     power_snvs.hv ~> bulk_snvs  ~> power_snvs.lv
 
     # ============= DRAM_VREF + DRAM_ZQPAD =============
-    # VREF = NVCC_DRAM/2 via 1kΩ 0.1% divider per datasheet
+    # VREF = NVCC_DRAM/2 via 1kΩ 1% divider. Connects to MPU.DRAM_VREF
+    # AND through bus.vref to DDR3 chip's VREFCA + VREFDQ.
     r_vref_top = new Resistor
     r_vref_top.resistance = 1kohm +/- 1%
     r_vref_top.package = "0402"
@@ -187,6 +190,7 @@ module MPU:
     r_vref_bot.package = "0402"
     power_1v35.hv ~> r_vref_top ~> package.DRAM_VREF
     package.DRAM_VREF ~> r_vref_bot ~> power_1v35.lv
+    package.DRAM_VREF ~ ddr3.vref         # share with DDR3 VREFCA/VREFDQ
     cap_vref_hf = new Capacitor; cap_vref_hf.capacitance = 100nF +/- 20%; cap_vref_hf.package = "0402"
     cap_vref_lf = new Capacitor; cap_vref_lf.capacitance = 10nF +/- 20%; cap_vref_lf.package = "0402"
     package.DRAM_VREF ~> cap_vref_hf ~> power_1v35.lv

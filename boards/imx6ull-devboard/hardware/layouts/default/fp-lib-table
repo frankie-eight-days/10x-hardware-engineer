@@ -483,4 +483,11 @@
 		(options "")
 		(descr "atopile: part lib: UNI_ROYAL_0402WGF3302TCE")
 	)
+	(lib
+		(name "Nanya_Tech_NT5CC128M16JR_EK")
+		(type "KiCad")
+		(uri "${KIPRJMOD}/../../src/parts/Nanya_Tech_NT5CC128M16JR_EK")
+		(options "")
+		(descr "atopile: part lib: Nanya_Tech_NT5CC128M16JR_EK")
+	)
 )

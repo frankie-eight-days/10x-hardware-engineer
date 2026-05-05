@@ -8,6 +8,136 @@ Current atopile: **v0.15.7 (April 2026)**. Docs URL slug is pinned to `atopile-0
 
 ---
 
+## Project state (2026-05-05)
+
+**Build status:** ✓ `ato build` succeeds. 58-line BOM, 1.26 MB `default.kicad_pcb` generated. **DDR3 instantiation commented out in `src/main.ato`** due to a build-time blocker (see below).
+
+**Subsystems shipped (8/9):**
+
+| Subsystem | File | Notes |
+|---|---|---|
+| Power Input | `src/power_input.ato` | USB-C + bench OR'd via 2× SS54 + AO3401A rev-pol |
+| Power Tree | `src/power_tree.ato` | 3× LocalBuck (forked) + LDO chain — see `src/parts/local_buck/` |
+| Ethernet | `src/network.ato` | LAN8742A wrapper with reviewer fixes (nINTSEL strap + 49.9Ω MDI term) |
+| USB-UART | `src/usb_uart.ato` | CH340N → USB-C #3 → MPU UART2 |
+| Audio | `src/audio.ato` | MAX98357A I²S (1MΩ pull-up for stereo-sum mode) |
+| microSD | `src/microsd.ato` | SOFNG TF-015, 22µF bulk, 4-bit @ 3V3 |
+| Debug | `src/debug.ato` | JTAG header + reset + boot DIP + LEDs + coin cell |
+| MPU | `src/mpu.ato` | i.MX 6ULL pinmux verified against datasheet Tables 90/91/92 + EVK DTS |
+| **DDR3** ⚠️ | `src/ddr3.ato` | Schematic side complete + datasheet-verified, **build-blocked** |
+
+**Top-level wiring** in `src/main.ato:Board`. Rails have `override_net_name` (VCC_5V, VCC_3V3, etc.) — required for atopile's PCB writer not to crash on auto-name collisions.
+
+## Known atopile gotchas (hit in this project)
+
+1. **PCB-write segfault on duplicate net names.** Symptoms: `Build failed with code -11` after `Updating PCB` stage with warnings like `KiCad net 'cathode'/'hv' is already bound to another faebryk net`. Fix: set `override_net_name` on every top-level rail in `Board`.
+
+2. **`AdjustableRegulator` picker contradiction with many consumers.** Symptoms: `Contradiction: No candidate assignment satisfies the discrete problem system` on `feedback_divider.chain.resistors[0/1].resistance`. Cause: `feedback_divider.v_in` bound to `power_out.voltage` over-constrains when many consumers add assertions. Fix: **fork the regulator package locally** (drop `from AdjustableRegulator` inheritance, hand-wire FB resistors). See `src/parts/local_buck/local_buck.ato` for the canonical fix.
+
+3. **EasyEDA-imported BGA parts with malformed pin numbers.** Symptoms: warnings like `Could not match lead D18 to pad`, build fails at pinout stage. Cause: `ato create part` import drops BGA row letters on T/U-row pins (e.g., `BOOT_MODE1 ~ pin 10` instead of `pin U10`). Fix: read the actual datasheet's contact assignment table and `sed`-fix the .ato file. The i.MX 6ULL fixes are in `src/parts/NXP_Semicon_MCIMX6Y2CVM08AB/`.
+
+4. **NC pads must be declared.** If footprint has 96 pads but .ato declares 90 signal/pin lines, atopile crashes during PCB write. Add `signal NC1 ~ pin J1` etc. for each unconnected pad to keep the count balanced.
+
+5. **`+/- 50ppm` syntax not accepted.** For Crystal frequency tolerance, use `+/- 1%` or `+/- 0.005%` instead — atopile's number parser doesn't recognize `ppm`.
+
+6. **`pin` is a reserved keyword** for child variable names. Don't name a sub-module `pin`. Use `pin_in` or similar.
+
+## ⚠️ DDR3 BUILD BLOCKER — context for resume
+
+**Symptom:** `ato build` fails with single-line error `min() iterable argument is empty` during `Updating PCB` stage, **as soon as the DDR3 chip is instantiated**, even with zero connections to it.
+
+**What's been tried (all failed identically):**
+
+- Full DDR3 wiring (address + data + control + power + ZQ + decoupling)
+- Comment out ZQ resistor + decoupling caps
+- Comment out `vref` interface field on DDR3Bus
+- Power-only connections (just VDD/VSS)
+- **Zero connections — just `chip = new Nanya_..._package` in module body**
+- Added 6 NC pad declarations (J1, J9, L1, L9, M7, T7) that auto-gen had skipped
+- Prefixed DDR3 address signals with `DDR_` (DDR_A0, DDR_A4, etc.) to avoid collision with MPU's BGA pad coordinates A4/A5/A6/A11/A13
+
+**Diagnostic clue (atopile log DB at `~/Library/Logs/atopile/build_logs.db`):**
+
+```
+Renaming net `D7`->`mpu.package-D7`
+Renaming net `A7`->`mpu.package-A7`
+Renaming net `A6`->`mpu.package-A6`
+Renaming net `A5`->`mpu.package-A5`
+Renaming net `A13`->`mpu.package-A13`
+Renaming net `A11`->`mpu.package-A11`
+[immediately followed by]
+min() iterable argument is empty
+```
+
+atopile is renaming MPU package nets named after BGA coordinates when DDR3 enters the design. Something in that rename path leaves a net with empty pad list. Read atopile's KiCad PCB writer to find where `min()` over an empty list happens.
+
+**Source paths to investigate:**
+
+- atopile install: `~/.local/share/uv/tools/atopile/lib/python3.14/site-packages/atopile/`
+- faebryk install: `~/.local/share/uv/tools/atopile/lib/python3.14/site-packages/faebryk/`
+- Likely culprits: `atopile/exporters/pcb/`, `faebryk/libs/kicad/`, anything that calls `min()` with pad-position arguments
+- `~/Library/Logs/atopile/build_logs.db` — full build log SQLite, query with `sqlite3` for context
+
+**Possibly-fruitful next steps:**
+
+1. **Get an actual stack trace.** `ato build` swallows the exception. Try `python -m atopile build` or set `ATOPILE_LOG_LEVEL=DEBUG`, or wrap in a Python `try/except` to print the traceback. The error site location is the key missing piece.
+
+2. **Hand-roll the Nanya atomic part.** Auto-gen `ato create part --search C428583` may have a subtle structural issue we haven't identified. Write the .ato + .kicad_mod by hand from datasheet page 5 ball map. Use the LAN8742A package as the structural template — that one builds clean.
+
+3. **Try a different DDR3 chip.** Micron MT41K128M16JT-125 is pin-compatible. Maybe its EasyEDA symbol is cleaner.
+
+4. **File a minimal repro upstream.** The crash is reproducible with just two BGA chips that have overlapping coordinate-named nets. This is an atopile bug.
+
+**What's confirmed correct (don't redo):**
+
+- Datasheet pinout mapping in `src/ddr3.ato` (verified against Nanya v1.5 datasheet pages 4-7)
+- DQSL pair fix (was swapped in auto-gen, now G3=DQSL, F3=DQSL#)
+- 6 NC pads added (J1, J9, L1, L9, M7, T7)
+- Address signal prefixing to DDR_A0, DDR_A4, etc.
+- VREFCA + VREFDQ both share `bus.vref` (JEDEC-allowed for single-chip)
+- ZQ via 240Ω 1% to GND
+- 12× 100nF + 2× 10µF decoupling (commonized with rest of board)
+
+**Files to look at when resuming DDR3:**
+
+- `src/parts/Nanya_Tech_NT5CC128M16JR_EK/Nanya_Tech_NT5CC128M16JR_EK.ato` — atomic part (with sed-applied fixes)
+- `src/parts/Nanya_Tech_NT5CC128M16JR_EK/TFBGA-96_*.kicad_mod` — footprint (96 pads)
+- `src/ddr3.ato` — wrapper module (89 lines, schematic-complete)
+- `src/main.ato` — DDR3 instantiation commented out near the end
+- `docs/subsystems/ddr3.md` — full design doc + investigation log
+
+## Quick commands
+
+```bash
+# Build (always from this hardware/ directory)
+ato build
+
+# Inspect log database for crash context
+sqlite3 ~/Library/Logs/atopile/build_logs.db \
+  "SELECT message FROM logs ORDER BY rowid DESC LIMIT 100"
+
+# Create a part from LCSC C-number (interactive crashes — use --search)
+ato create part --search "C428583" --accept-single
+
+# Add a registry package
+ato add atopile/<package-name>
+
+# Verify pin labels match footprint pads
+grep -oE "pin [A-Z]+[0-9]+" src/parts/<part>/<part>.ato | sort -u | wc -l
+grep -oE '\(pad "[A-Z]+[0-9]+"' src/parts/<part>/<part>.kicad_mod | sort -u | wc -l
+```
+
+## Stdlib gotchas
+
+- `LED` has `.diode.anode` / `.diode.cathode`, NOT `.anode` / `.cathode` directly. Bridge via the LED itself: `power.hv ~> r ~> led ~> power.lv`.
+- `Inductor.max_current` doesn't exist — use `saturation_current`.
+- `LEDIndicator` import name is wrong; use `LED` + `Resistor` directly.
+- pin-headers package exposes `pins[N]` (Electrical[]), not `unnamed[N]`.
+- Don't name variables `pin` (reserved keyword).
+- Use `signal NAME ~ pin <coord>` syntax in atomic parts; bare `pin <coord>` lines are anonymous and break access from outside.
+
+---
+
 ## Mental model
 
 atopile is a **declarative, constraint-based DSL**. No control flow, no mutation, no execution order. You declare *what* the circuit is; the compiler + solver resolve it. Statements within a block are **order-independent** — assigning `r.resistance` twice is a constraint conflict, not "last write wins."

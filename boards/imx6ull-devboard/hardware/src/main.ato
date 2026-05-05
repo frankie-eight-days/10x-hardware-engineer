@@ -21,6 +21,7 @@ from "power_input.ato" import PowerInput
 from "debug.ato" import Debug
 from "mpu.ato" import MPU
 from "mpu.ato" import DDR3Bus
+from "ddr3.ato" import DDR3
 from "atopile/microchip-lan8742a/microchip-lan8742a.ato" import RMII
 from "atopile/microchip-lan8742a/microchip-lan8742a.ato" import MDIO
 
@@ -175,6 +176,14 @@ module Board:
     mpu.usb_otg1_vbus_sense ~ usb_otg_vbus_sense
     mpu.usb_otg1_id         ~ usb_otg_id
 
-    # DDR3 bus exposed for DDR3 module to connect (not yet built)
-    ddr3_to_dram = new DDR3Bus
-    mpu.ddr3 ~ ddr3_to_dram
+    # ---- DDR3L SDRAM (Nanya NT5CC128M16JR-EK, 256 MB) ----
+    # BLOCKED: build-time crash "min() iterable argument is empty" during
+    # KiCad PCB-write stage when DDR3 chip is instantiated. Suspected cause:
+    # auto-gen Nanya part interaction with atopile's net-renaming logic
+    # (something about both chips having pad coordinate conflicts). Same
+    # error even with no connections to the chip.
+    # See docs/subsystems/ddr3.md for full module — schematic side is
+    # complete and datasheet-verified, just blocked at build time.
+    # dram = new DDR3
+    # dram.power_1v35 ~ power_1v35
+    # dram.bus ~ mpu.ddr3

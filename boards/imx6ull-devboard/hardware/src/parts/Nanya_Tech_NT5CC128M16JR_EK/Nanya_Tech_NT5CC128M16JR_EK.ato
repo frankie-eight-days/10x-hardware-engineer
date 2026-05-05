@@ -1,0 +1,113 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+import is_auto_generated
+
+component Nanya_Tech_NT5CC128M16JR_EK_package:
+    # This trait marks this file as auto-generated
+    # If you want to manually change it, remove the trait
+    trait is_auto_generated<system="ato_part", source="easyeda:C428583", date="2026-05-05T14:32:01.743972+00:00", checksum="5fc52568a900cd06cffd778ce5be46bf9396cf57ac2521e7d233053e718a2784">
+
+    trait is_atomic_part<manufacturer="Nanya Tech", partnumber="NT5CC128M16JR-EK", footprint="TFBGA-96_L13.0-W7.5-R16-C6-P0.80-TL.kicad_mod", symbol="NT5CC128M16JR-EK.kicad_sym", model="TFBGA-96_L13.0-W7.5-H1.1-R16-C6-P0.80-TL.step">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C428583", manufacturer="Nanya Tech", partno="NT5CC128M16JR-EK">
+    trait has_designator_prefix<prefix="U">
+    trait has_datasheet<datasheet="https://www.lcsc.com/datasheet/lcsc_datasheet_1912111437_Nanya-Tech-NT5CC128M16JR-EK_C428583.pdf">
+
+    # pins
+    signal DDR_A0 ~ pin N3
+    signal SIG_A1 ~ pin P7
+    signal SIG_A2 ~ pin P3
+    signal SIG_A3 ~ pin N2
+    signal DDR_A4 ~ pin P8
+    signal DDR_A5 ~ pin P2
+    signal DDR_A6 ~ pin R8
+    signal SIG_A7 ~ pin R2
+    signal SIG_A8 ~ pin T8
+    signal SIG_A9 ~ pin R3
+    signal DDR_A10_AP ~ pin L7
+    signal DDR_A11 ~ pin R7
+    signal DDR_A12_nBC ~ pin N7
+    signal DDR_A13 ~ pin T3
+    signal BA0 ~ pin M2
+    signal BA1 ~ pin N8
+    signal BA2 ~ pin M3
+    signal CK ~ pin J7
+    signal CKE ~ pin K9
+    signal DML ~ pin E7
+    signal DMU ~ pin D3
+    signal DQL0 ~ pin E3
+    signal DQL1 ~ pin F7
+    signal DQL2 ~ pin F2
+    signal DQL3 ~ pin F8
+    signal DQL4 ~ pin H3
+    signal DQL5 ~ pin H8
+    signal DQL6 ~ pin G2
+    signal DQL7 ~ pin H7
+    signal DQSL ~ pin G3
+    signal DQSU ~ pin C7
+    signal DQU0 ~ pin D7
+    signal DQU1 ~ pin C3
+    signal DQU2 ~ pin C8
+    signal DQU3 ~ pin C2
+    signal DQU4 ~ pin A7
+    signal DQU5 ~ pin A2
+    signal DQU6 ~ pin B8
+    signal DQU7 ~ pin A3
+    signal ODT ~ pin K1
+    signal VDD ~ pin R9
+    VDD ~ pin R1
+    VDD ~ pin N9
+    VDD ~ pin N1
+    VDD ~ pin K8
+    VDD ~ pin K2
+    VDD ~ pin G7
+    VDD ~ pin D9
+    VDD ~ pin B2
+    signal VDDQ ~ pin H9
+    VDDQ ~ pin H2
+    VDDQ ~ pin F1
+    VDDQ ~ pin E9
+    VDDQ ~ pin D2
+    VDDQ ~ pin C9
+    VDDQ ~ pin C1
+    VDDQ ~ pin A8
+    VDDQ ~ pin A1
+    signal VREFCA ~ pin M8
+    signal VREFDQ ~ pin H1
+    signal VSS ~ pin T9
+    VSS ~ pin T1
+    VSS ~ pin P9
+    VSS ~ pin P1
+    VSS ~ pin M9
+    VSS ~ pin M1
+    VSS ~ pin J8
+    VSS ~ pin J2
+    VSS ~ pin G8
+    VSS ~ pin E1
+    VSS ~ pin B3
+    VSS ~ pin A9
+    signal VSSQ ~ pin G9
+    VSSQ ~ pin G1
+    VSSQ ~ pin F9
+    VSSQ ~ pin E8
+    VSSQ ~ pin E2
+    VSSQ ~ pin D8
+    VSSQ ~ pin D1
+    VSSQ ~ pin B9
+    VSSQ ~ pin B1
+    signal ZQ ~ pin L8
+    signal NC1 ~ pin J1
+    signal NC2 ~ pin J9
+    signal NC3 ~ pin L1
+    signal NC4 ~ pin L9
+    signal NC5 ~ pin M7
+    signal NC6 ~ pin T7
+    signal nCAS ~ pin K3
+    signal nCK ~ pin K7
+    signal nCS ~ pin L2
+    signal nDQSL ~ pin F3
+    signal nDQSU ~ pin B7
+    signal nRAS ~ pin J3
+    signal nRESET ~ pin T2
+    signal nWE ~ pin L3

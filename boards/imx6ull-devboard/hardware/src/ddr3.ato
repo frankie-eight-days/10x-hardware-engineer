@@ -1,0 +1,156 @@
+"""DDR3L SDRAM subsystem: Nanya NT5CC128M16JR-EK (2 Gb, x16, 96-ball TFBGA).
+
+Single-chip 16-bit DDR3L providing 256 MB at the i.MX 6ULL MMDC interface.
+
+Pin mapping (datasheet Nanya v1.5 04/2019, page 5 ball map):
+  DQL0..7  → bus.data[0..7]    (lower byte)
+  DQU0..7  → bus.data[8..15]   (upper byte)
+  DML      → bus.dqm[0]        (lower byte mask)
+  DMU      → bus.dqm[1]        (upper byte mask)
+  DQSL/#   → bus.dqs_p[0]/dqs_n[0]
+  DQSU/#   → bus.dqs_p[1]/dqs_n[1]
+  DDR_A0..A13 → bus.addr[0..13]   (address — prefixed with DDR_ to avoid
+                                   conflict with MPU's A4/A5/A6/A11/A13 BGA pads)
+  BA0..2   → bus.ba[0..2]
+  CK/CK#   → bus.sdck_p / bus.sdck_n
+  CKE      → bus.sdcke
+  CS#      → bus.cs_b
+  ODT      → bus.odt
+  RAS#     → bus.ras_b
+  CAS#     → bus.cas_b
+  WE#      → bus.we_b
+  RESET#   → bus.reset_b
+  ZQ       → 240Ω 1% to GND
+  VREFCA   → bus.vref (shared from MPU's DRAM_VREF divider)
+  VREFDQ   → bus.vref (same — single-chip, JEDEC-allowed share)
+  VDD/VDDQ → power_1v35.hv
+  VSS/VSSQ → power_1v35.lv
+"""
+
+#pragma experiment("BRIDGE_CONNECT")
+#pragma experiment("FOR_LOOP")
+
+import ElectricPower
+import Capacitor
+import Resistor
+
+from "mpu.ato" import DDR3Bus
+from "parts/Nanya_Tech_NT5CC128M16JR_EK/Nanya_Tech_NT5CC128M16JR_EK.ato" import Nanya_Tech_NT5CC128M16JR_EK_package
+
+
+module DDR3:
+    """16-bit DDR3L SDRAM, 256 MB, single-chip."""
+
+    power_1v35 = new ElectricPower
+    power_1v35.required = True
+    bus = new DDR3Bus
+
+    chip = new Nanya_Tech_NT5CC128M16JR_EK_package
+
+    # Power
+    chip.VDD  ~ power_1v35.hv
+    chip.VDDQ ~ power_1v35.hv
+    chip.VSS  ~ power_1v35.lv
+    chip.VSSQ ~ power_1v35.lv
+
+    # Address bus — DDR3 chip uses DDR_ prefixed names; some have SIG_ prefix
+    # (auto-gen artifact when names collide with footprint pad coordinates).
+    chip.DDR_A0     ~ bus.addr[0].line
+    chip.SIG_A1     ~ bus.addr[1].line
+    chip.SIG_A2     ~ bus.addr[2].line
+    chip.SIG_A3     ~ bus.addr[3].line
+    chip.DDR_A4     ~ bus.addr[4].line
+    chip.DDR_A5     ~ bus.addr[5].line
+    chip.DDR_A6     ~ bus.addr[6].line
+    chip.SIG_A7     ~ bus.addr[7].line
+    chip.SIG_A8     ~ bus.addr[8].line
+    chip.SIG_A9     ~ bus.addr[9].line
+    chip.DDR_A10_AP ~ bus.addr[10].line
+    chip.DDR_A11    ~ bus.addr[11].line
+    chip.DDR_A12_nBC ~ bus.addr[12].line
+    chip.DDR_A13    ~ bus.addr[13].line
+    # bus.addr[14], bus.addr[15] unused on x16 256MB single-chip
+
+    # Bank address
+    chip.BA0 ~ bus.ba[0].line
+    chip.BA1 ~ bus.ba[1].line
+    chip.BA2 ~ bus.ba[2].line
+
+    # Data bus
+    chip.DQL0 ~ bus.data[0].line
+    chip.DQL1 ~ bus.data[1].line
+    chip.DQL2 ~ bus.data[2].line
+    chip.DQL3 ~ bus.data[3].line
+    chip.DQL4 ~ bus.data[4].line
+    chip.DQL5 ~ bus.data[5].line
+    chip.DQL6 ~ bus.data[6].line
+    chip.DQL7 ~ bus.data[7].line
+    chip.DQU0 ~ bus.data[8].line
+    chip.DQU1 ~ bus.data[9].line
+    chip.DQU2 ~ bus.data[10].line
+    chip.DQU3 ~ bus.data[11].line
+    chip.DQU4 ~ bus.data[12].line
+    chip.DQU5 ~ bus.data[13].line
+    chip.DQU6 ~ bus.data[14].line
+    chip.DQU7 ~ bus.data[15].line
+
+    # Data masks
+    chip.DML ~ bus.dqm[0].line
+    chip.DMU ~ bus.dqm[1].line
+
+    # Data strobes (differential per byte)
+    chip.DQSL  ~ bus.dqs_p[0].line
+    chip.nDQSL ~ bus.dqs_n[0].line
+    chip.DQSU  ~ bus.dqs_p[1].line
+    chip.nDQSU ~ bus.dqs_n[1].line
+
+    # Clock + control
+    chip.CK     ~ bus.sdck_p.line
+    chip.nCK    ~ bus.sdck_n.line
+    chip.CKE    ~ bus.sdcke.line
+    chip.nCS    ~ bus.cs_b.line
+    chip.nRAS   ~ bus.ras_b.line
+    chip.nCAS   ~ bus.cas_b.line
+    chip.nWE    ~ bus.we_b.line
+    chip.ODT    ~ bus.odt.line
+    chip.nRESET ~ bus.reset_b.line
+
+    # VREFCA + VREFDQ (shared, from MPU's DRAM_VREF via bus.vref)
+    chip.VREFCA ~ bus.vref
+    chip.VREFDQ ~ bus.vref
+
+    # ZQ calibration: 240Ω 1% to GND
+    r_zq = new Resistor
+    r_zq.resistance = 240ohm +/- 1%
+    r_zq.package = "0402"
+    chip.ZQ ~> r_zq ~> power_1v35.lv
+
+    # Decoupling: 12× 100nF + 2× 10µF bulk
+    decap_dram = new Capacitor[12]
+    for c in decap_dram:
+        c.capacitance = 100nF +/- 20%
+        c.package = "0402"
+        power_1v35.hv ~> c ~> power_1v35.lv
+
+    bulk_dram = new Capacitor[2]
+    for c in bulk_dram:
+        c.capacitance = 10uF +/- 20%
+        c.package = "0805"
+        power_1v35.hv ~> c ~> power_1v35.lv
+
+    # Bus signal references (1.35V signaling)
+    for s in bus.addr:  s.reference ~ power_1v35
+    for s in bus.data:  s.reference ~ power_1v35
+    for s in bus.ba:    s.reference ~ power_1v35
+    for s in bus.dqm:   s.reference ~ power_1v35
+    for s in bus.dqs_p: s.reference ~ power_1v35
+    for s in bus.dqs_n: s.reference ~ power_1v35
+    bus.sdck_p.reference  ~ power_1v35
+    bus.sdck_n.reference  ~ power_1v35
+    bus.sdcke.reference   ~ power_1v35
+    bus.cs_b.reference    ~ power_1v35
+    bus.odt.reference     ~ power_1v35
+    bus.ras_b.reference   ~ power_1v35
+    bus.cas_b.reference   ~ power_1v35
+    bus.we_b.reference    ~ power_1v35
+    bus.reset_b.reference ~ power_1v35
