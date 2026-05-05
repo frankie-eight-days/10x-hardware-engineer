@@ -1,0 +1,19 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+import is_auto_generated
+
+component cjiang_FXL0420_2R2_M_package:
+    # This trait marks this file as auto-generated
+    # If you want to manually change it, remove the trait
+    trait is_auto_generated<system="ato_part", source="easyeda:C167206", date="2026-05-05T14:14:59.422368+00:00", checksum="5d6f96a22902d2278ccd8ca0b98ca1fdd8b3c0632850e0aa21735c4effe91381">
+
+    trait is_atomic_part<manufacturer="cjiang", partnumber="FXL0420-2R2-M", footprint="IND-SMD_L4.4-W4.2.kicad_mod", symbol="FXL0420-2R2-M.kicad_sym", model="IND-SMD_L4.2-W4.4-H2.0.step">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C167206", manufacturer="cjiang", partno="FXL0420-2R2-M">
+    trait has_designator_prefix<prefix="L">
+    trait has_datasheet<datasheet="https://www.lcsc.com/datasheet/lcsc_datasheet_2404260921_cjiang--Changjiang-Microelectronics-Tech-FXL0420-2R2-M_C167206.pdf">
+
+    # pins
+    pin 2
+    pin 1

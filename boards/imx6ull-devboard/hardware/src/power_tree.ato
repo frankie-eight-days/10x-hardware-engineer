@@ -31,7 +31,9 @@ import Resistor
 import Inductor
 import Diode
 
-from "atopile/ti-tps563201/ti-tps563201.ato" import TI_TPS563201
+from "parts/local_buck/local_buck.ato" import LocalBuck_3V3
+from "parts/local_buck/local_buck.ato" import LocalBuck_1V4
+from "parts/local_buck/local_buck.ato" import LocalBuck_1V35
 from "atopile/ti-tlv75901/ti-tlv75901.ato" import TI_TLV75901
 from "atopile/st-ldk220/st-ldk220.ato" import LDK220M_R
 
@@ -58,31 +60,12 @@ module PowerTree:
     assert power_1v8.voltage     within 1.71V to 1.89V
     assert power_snvs.voltage    within 2.5V to 3.3V
 
-    # ---- Buck regulators (3x TPS563201, commonized) ----
-    buck_3v3  = new TI_TPS563201
-    buck_1v4  = new TI_TPS563201
-    buck_1v35 = new TI_TPS563201
-
-    # Pin FB divider resistors directly. Picker had trouble satisfying with
-    # global rail constraints; explicit values are deterministic and
-    # commonize 10kΩ across all three bucks (already in BOM).
-    # Vref = 0.768V; Vout = Vref × (1 + R_top/R_bot)
-    #   3V3: 33.0k / 10k → 3.302V
-    #   1V4: 8.2k  / 10k → 1.398V
-    #   1V35: 7.5k / 10k → 1.344V
-    buck_3v3.feedback_divider.chain.resistors[0].resistance = 33kohm +/- 1%
-    buck_3v3.feedback_divider.chain.resistors[1].resistance = 10kohm +/- 1%
-    buck_1v4.feedback_divider.chain.resistors[0].resistance = 8.2kohm +/- 1%
-    buck_1v4.feedback_divider.chain.resistors[1].resistance = 10kohm +/- 1%
-    buck_1v35.feedback_divider.chain.resistors[0].resistance = 7.5kohm +/- 1%
-    buck_1v35.feedback_divider.chain.resistors[1].resistance = 10kohm +/- 1%
-
-    # Bump inductor saturation requirement above TPS563201 OCL_max (5.1A typ +
-    # half ripple) — reviewer fix #4. The package's default `>= 3A` lets the
-    # core saturate before the IC current-limits during a startup short.
-    assert buck_3v3.inductor.max_current  >= 4.5A
-    assert buck_1v4.inductor.max_current  >= 4.5A
-    assert buck_1v35.inductor.max_current >= 4.5A
+    # ---- Buck regulators (3x TPS563201, hand-wired FB to bypass picker) ----
+    # Local fork of atopile/ti-tps563201 — see src/parts/local_buck/local_buck.ato
+    # for why we forked. R values are explicit per Vout target.
+    buck_3v3  = new LocalBuck_3V3
+    buck_1v4  = new LocalBuck_1V4
+    buck_1v35 = new LocalBuck_1V35
 
     # All three bucks fed from 5V_BOARD
     power_5v ~ buck_3v3.power_in
