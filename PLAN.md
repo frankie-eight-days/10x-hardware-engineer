@@ -48,7 +48,7 @@ USB-OTG VBUS is *not* part of this OR — host mode = we source it; device mode 
 | P-FET reverse-pol | AO3401A | C15127 | Basic | $0.02, Rds(on) 50 mΩ, SOT-23 |
 | Bench terminal block, 5mm 10A | Ningbo Kangnex EK500V-5.0-02P | C8270 | Basic | 2-pin green screw |
 
-**Verify all C-numbers and JLC status on jlcpcb.com/parts before BOM submission** — research agent's numbers come from training data, not live verification.
+**Note:** initial C-numbers were unverified. Live JLC sweep done — see `boards/imx6ull-devboard/hardware/BOM.md` for the verified BoM with corrections (HUSB238 was wrong, terminal block was wrong) and stock/fee reality check.
 
 ### Discrete buck/LDO power tree from 5V_BOARD
 
