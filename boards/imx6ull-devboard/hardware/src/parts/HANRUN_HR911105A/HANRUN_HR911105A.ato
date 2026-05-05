@@ -1,0 +1,37 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+import is_auto_generated
+
+component HANRUN_HR911105A_package:
+    """RJ45-LED"""
+
+    # This trait marks this file as auto-generated
+    # If you want to manually change it, remove the trait
+    trait is_auto_generated<system="ato_part", source="easyeda:C12074", date="2026-05-05T15:26:35.620025+00:00", checksum="023f2aa35e09faf338f6930b3588fa8d7cea323c69db843a3e33f0f26d024901">
+
+    trait is_atomic_part<manufacturer="HANRUN", partnumber="HR911105A", footprint="RJ45-TH_HR911105A.kicad_mod", symbol="HR911105A_C12074.kicad_sym", model="RJ45-TH_HR911105A">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C12074", manufacturer="HANRUN", partno="HR911105A">
+    trait has_designator_prefix<prefix="J">
+    trait has_datasheet<datasheet="https://www.lcsc.com/datasheet/lcsc_datasheet_2409302333_HANRUN-Zhongshan-HanRun-Elec-HR911105A_C12074.pdf">
+
+    # pins — canonical HR911105A PCB-side layout (Hanrun datasheet).
+    # The EasyEDA import named these by the RJ45 cable-pin convention which
+    # is wrong for the magjack's PCB pads. The transformer is between the
+    # cable and these PCB pads, so PCB pad 1 connects through the magnetics
+    # to the cable-side TX+ pair etc. — not directly.
+    signal TX_P  ~ pin 1   # TX+ (PHY-side primary)
+    signal TX_CT ~ pin 2   # TX center tap (Bob Smith terminate)
+    signal TX_N  ~ pin 3   # TX-
+    signal RX_P  ~ pin 4   # RX+
+    signal NC1   ~ pin 5   # No connect
+    signal NC2   ~ pin 6   # No connect
+    signal RX_CT ~ pin 7   # RX center tap (Bob Smith terminate)
+    signal RX_N  ~ pin 8   # RX-
+    signal LED1_A ~ pin 9  # LED1 anode (link, yellow typ.)
+    signal LED1_K ~ pin 10 # LED1 cathode (PHY-driven, active-low)
+    signal LED2_A ~ pin 11 # LED2 anode (speed/activity, green typ.)
+    signal LED2_K ~ pin 12 # LED2 cathode
+    signal SHIELD1 ~ pin SH1
+    signal SHIELD2 ~ pin SH2

@@ -1,0 +1,38 @@
+"""USB-C #2 — i.MX 6ULL USB OTG1 connector.
+
+v0: UFP / device-mode default. The atopile/usb-connectors USB-C connector
+already has 5.1kΩ CC1+CC2 pulldowns (advertising as device), 1A polyfuse on
+VBUS, and USBLC6-2SC6 ESD on D+/D-. Cable injects 5V VBUS when host plugs in.
+
+The MPU's `usb_otg1_id` pin defaults HIGH (100kΩ pullup to 3V3 inside the MPU
+module) → device mode. UFP pulldowns on CC1/CC2 reinforce this.
+
+v2: swap to TUSB320LAI for full USB-C OTG role detection.
+"""
+
+#pragma experiment("BRIDGE_CONNECT")
+
+import ElectricPower
+import DifferentialPair
+
+from "atopile/usb-connectors/usb-connectors.ato" import USB2_0TypeCHorizontalConnector
+
+
+module USBOtg:
+    """USB-C 2.0 receptacle wired to i.MX 6ULL OTG1. Device-mode default."""
+
+    # External interfaces
+    power_5v_vbus = new ElectricPower    # 5V from host cable VBUS (after fuse)
+    usb_dp_dn     = new DifferentialPair # to mpu.usb_otg1
+
+    # Connector subsystem: USB-C, CC pulldowns (UFP), 1A fuse, USBLC6 ESD
+    connector = new USB2_0TypeCHorizontalConnector
+
+    # Power: VBUS rail from connector → exposed to MPU (for VBUS detect)
+    connector.usb.usb_if.buspower ~ power_5v_vbus
+
+    # D+/D- mapping
+    connector.usb.usb_if.d.p.line ~ usb_dp_dn.p.line
+    connector.usb.usb_if.d.n.line ~ usb_dp_dn.n.line
+    usb_dp_dn.p.reference ~ power_5v_vbus
+    usb_dp_dn.n.reference ~ power_5v_vbus

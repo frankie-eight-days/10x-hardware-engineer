@@ -28,6 +28,17 @@
 		)
 	)
 	(attr smd)
+	(fp_rect
+		(start -3.75 -6.5)
+		(end 3.75 6.5)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(fill no)
+		(layer "F.SilkS")
+		(uuid "00000000-0000-0000-0000-000000000001")
+	)
 	(fp_circle
 		(center -3.75 -6.5)
 		(end -3.72 -6.5)

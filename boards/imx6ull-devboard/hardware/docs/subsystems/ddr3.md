@@ -116,53 +116,69 @@ module DDR3:
 - [x] Add `vref` to DDR3Bus interface in mpu.ato; wire `package.DRAM_VREF` to it. **DONE.**
 - [x] Confirm Nanya NT5CC128M16JR EasyEDA symbol pin numbering. **Partially:** found the DQSL/DQSL# pair was swapped, fixed. Found 6 NC pads (J1, J9, L1, L9, M7, T7) missing from the auto-gen, added.
 - [x] Prefix DDR3 address signals (`DDR_A0`, `DDR_A4`, etc.) to avoid name collisions with MPU BGA pad coordinates A4/A5/A6/A11/A13. **DONE.**
+- [x] Resolve `min() iterable argument is empty` build crash. **DONE** — see "Build blocker" section above; root cause was atopile bbox bug on circle-only silkscreen, fixed by adding `fp_rect` body outline.
 - [ ] Decide if we need a 100kΩ pulldown on DRAM_RESET externally.
 - [ ] First-article: scope CK/CK# at the chip with a high-Z probe — confirm differential swing, no overshoot.
 - [ ] Reviewer agent run after schematic is in place.
+- [ ] File the `get_bbox_from_geos` Circle/Arc bug upstream at github.com/atopile/atopile.
 
-## ⚠️ KNOWN BUILD BLOCKER
+## Build blocker — RESOLVED (upstream atopile bug)
 
-`ato build` fails with `min() iterable argument is empty` during the KiCad
-PCB-write stage when the DDR3 module is instantiated, **even with all
-connections commented out** (just declaring `chip = new Nanya_..._package`
-in a module that's instantiated triggers it).
+The earlier `min() iterable argument is empty` crash during the PCB-write stage
+turned out to be an **atopile bug**, not a schematic issue. Resolved 2026-05-05.
 
-**Investigation log:**
+**Root cause:** `faebryk/exporters/pcb/kicad/transformer.py:get_bbox_from_geos`
+has unimplemented `...` stubs for the `Circle` and `Arc` branches:
 
-| Attempt | Result |
-|---|---|
-| Full DDR3 wiring | ✗ min() empty |
-| Without ZQ resistor | ✗ |
-| Without decoupling caps | ✗ |
-| Without `vref` interface field | ✗ |
-| Power-only connections | ✗ |
-| Zero connections (just instantiate chip) | ✗ |
-| Add 6 NC pad declarations (J1, J9, L1, L9, M7, T7) | ✗ |
-| Prefix address signals (DDR_A0, DDR_A4, etc.) to avoid MPU pad collision | ✗ |
-
-**Diagnostic clue from atopile log DB:**
-```
-Renaming net `D7`->`mpu.package-D7`
-Renaming net `A7`->`mpu.package-A7`
-...
-min() iterable argument is empty
+```python
+elif isinstance(geo, kicad.pcb.Circle):
+    # TODO: calculate extremes.extend([geo.center, geo.end])
+    ...
 ```
 
-atopile is renaming MPU package nets that have coordinate-like names (D7,
-A7, etc.) when the DDR3 chip is added. Something in that rename path leaves
-a net with empty pad list, and `min()` crashes.
+When `set_designator_positions` runs on a *new* footprint (added in this build),
+it computes the silkscreen bounding box. The Nanya footprint that `ato create
+part` imported from EasyEDA has 96 `fp_circle` shapes on `F.SilkS` (one per
+ball, decorative) and **zero** `fp_line`/`fp_rect`/`fp_arc`. So `extremes`
+stays empty, and the chained `Geometry.bbox` call eventually does `min(...)`
+on `[]`.
 
-**Schematic side IS correct** — module file is complete, datasheet-verified
-(96-ball pinout from Nanya v1.5 datasheet pages 5-7), and the wiring matches
-i.MX 6ULL MMDC interface conventions. Only the build-time PCB write fails.
+**Fix applied:** added a single `fp_rect` body outline to the Nanya .kicad_mod:
 
-**Next steps to resume:**
-1. File issue with atopile/atopile on GitHub — provide minimal repro
-2. Read atopile's KiCad PCB writer source (in `~/.local/share/uv/tools/atopile/lib/python3.14/site-packages/atopile/...`) to find where `min()` over empty list happens
-3. Try: regenerate the Nanya part with `--mpn` flag instead of `--lcsc` (may produce a different EasyEDA import that doesn't conflict)
-4. Try: rename ALL signals in the auto-gen part (DQU0, DQL0, etc.) with DDR_ prefix — maybe the problem extends beyond just the address pins
-5. Consider: hand-write the Nanya atomic part from datasheet pinout instead of using auto-gen
+```kicad_mod
+(fp_rect
+    (start -3.75 -6.5)
+    (end 3.75 6.5)
+    (stroke (width 0.12) (type solid))
+    (fill no)
+    (layer "F.SilkS")
+    (uuid "00000000-0000-0000-0000-000000000001")
+)
+```
 
-For now, DDR3 module is **commented out** in `main.ato` so the rest of the
-board still builds successfully. The `src/ddr3.ato` and `src/parts/Nanya_...`
-files are kept in the repo, ready to enable when the picker issue is solved.
+Corners match the 7.5 × 13.0 mm package body from the filename
+`TFBGA-96_L13.0-W7.5...`. This also gives the BGA a proper silkscreen body
+outline on the assembled board — strictly an improvement over the 96 floating
+circles.
+
+**How the actual stack trace was found** (worth noting for future opaque
+atopile errors): the `min()` message printed by `ato build` is just the
+exception message; the full traceback is logged to
+`~/Library/Logs/atopile/build_logs.db` table `logs`, column `python_traceback`
+as JSON. Query with:
+
+```bash
+sqlite3 ~/Library/Logs/atopile/build_logs.db \
+  "SELECT python_traceback FROM logs \
+   WHERE message='min() iterable argument is empty' \
+   ORDER BY id DESC LIMIT 1"
+```
+
+The earlier "Renaming net `D7`→…" diagnostic clue was a red herring — those
+are normal info logs emitted as nets get processed; the crash happens later
+in `update_pcb` → `set_designator_positions` → `get_bounding_box`, which has
+nothing to do with net renaming.
+
+**Should also be filed upstream:** atopile/faebryk should implement the Circle
+and Arc bbox branches (the math is straightforward: for Circle, extents are
+`(center.x ± radius, center.y ± radius)`).

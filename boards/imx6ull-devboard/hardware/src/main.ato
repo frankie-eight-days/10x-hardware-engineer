@@ -22,6 +22,8 @@ from "debug.ato" import Debug
 from "mpu.ato" import MPU
 from "mpu.ato" import DDR3Bus
 from "ddr3.ato" import DDR3
+from "usb_otg.ato" import USBOtg
+from "rtc.ato" import RTC
 from "atopile/microchip-lan8742a/microchip-lan8742a.ato" import RMII
 from "atopile/microchip-lan8742a/microchip-lan8742a.ato" import MDIO
 
@@ -167,23 +169,19 @@ module Board:
     mpu.boot_mode0    ~ boot_mode0_to_mpu
     mpu.boot_mode1    ~ boot_mode1_to_mpu
 
-    # USB OTG1: D+/D- on the MPU side; USB-C #2 connector subsystem is a TODO.
-    # Expose at Board boundary as floating signals for now.
-    usb_otg_pair       = new DifferentialPair
-    usb_otg_vbus_sense = new ElectricLogic
-    usb_otg_id         = new ElectricLogic
-    mpu.usb_otg1            ~ usb_otg_pair
-    mpu.usb_otg1_vbus_sense ~ usb_otg_vbus_sense
-    mpu.usb_otg1_id         ~ usb_otg_id
+    # ---- USB-C #2 (USB OTG1, device-mode default) ----
+    otg = new USBOtg
+    otg.usb_dp_dn ~ mpu.usb_otg1
+    otg.power_5v_vbus.hv ~ mpu.usb_otg1_vbus
+    otg.power_5v_vbus.lv ~ power_5v.lv          # share GND
 
     # ---- DDR3L SDRAM (Nanya NT5CC128M16JR-EK, 256 MB) ----
-    # BLOCKED: build-time crash "min() iterable argument is empty" during
-    # KiCad PCB-write stage when DDR3 chip is instantiated. Suspected cause:
-    # auto-gen Nanya part interaction with atopile's net-renaming logic
-    # (something about both chips having pad coordinate conflicts). Same
-    # error even with no connections to the chip.
-    # See docs/subsystems/ddr3.md for full module — schematic side is
-    # complete and datasheet-verified, just blocked at build time.
-    # dram = new DDR3
-    # dram.power_1v35 ~ power_1v35
-    # dram.bus ~ mpu.ddr3
+    dram = new DDR3
+    dram.power_1v35 ~ power_1v35
+    dram.bus ~ mpu.ddr3
+
+    # ---- External I²C RTC (PCF8563T, battery-backed) ----
+    rtc = new RTC
+    rtc.power_snvs ~ power_snvs        # coin-cell-OR'd in PowerTree
+    rtc.i2c        ~ mpu.i2c1
+    rtc.int_out    ~ mpu.rtc_int

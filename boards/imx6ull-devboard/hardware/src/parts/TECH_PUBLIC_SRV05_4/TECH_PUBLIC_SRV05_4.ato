@@ -1,0 +1,23 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+import is_auto_generated
+
+component TECH_PUBLIC_SRV05_4_package:
+    # This trait marks this file as auto-generated
+    # If you want to manually change it, remove the trait
+    trait is_auto_generated<system="ato_part", source="easyeda:C558418", date="2026-05-05T15:27:08.849228+00:00", checksum="4755a3892f5c84514ce7c4ab8de95297726b811d715479aaf51948d167ad3b35">
+
+    trait is_atomic_part<manufacturer="TECH PUBLIC", partnumber="SRV05-4", footprint="SOT-23-6_L2.9-W1.6-P0.95-LS2.8-BL.kicad_mod", symbol="SRV05-4_C558418.kicad_sym", model="SOT-23-6_L2.9-W1.6-H1.5-LS2.8-P0.95.step">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C558418", manufacturer="TECH PUBLIC", partno="SRV05-4">
+    trait has_designator_prefix<prefix="D">
+    trait has_datasheet<datasheet="https://www.lcsc.com/datasheet/lcsc_datasheet_2306151011_TECH-PUBLIC-SRV05-4_C558418.pdf">
+
+    # pins
+    pin 1
+    pin 2
+    pin 3
+    pin 4
+    pin 5
+    pin 6

@@ -1,0 +1,81 @@
+"""External I²C RTC: NXP PCF8563T/518 (SOIC-8).
+
+Why an external RTC alongside the i.MX 6ULL's internal SNVS RTC?
+- Independent oscillator + alarm/IRQ for wake events (NXP errata report some
+  i.MX SNVS RTC oddities under brown-out).
+- 0x51 slave address, ±20 ppm with the same Epson FC-135 crystal we use for
+  the SoC's RTC.
+- Common educational reference design — adds a real I²C peripheral so the
+  bus shows up in dmesg.
+
+Power: VDD_SNVS (already coin-cell-OR'd in the power tree). PCF8563T runs
+1.0–5.5V, draws ~250 nA in time-keeping mode → coin cell holds it for
+years.
+
+References:
+- NXP PCF8563 datasheet (Rev 11 — 2022).
+- App note AN10365 PCF8563 application notes.
+"""
+
+#pragma experiment("BRIDGE_CONNECT")
+
+import ElectricPower
+import I2C
+import ElectricLogic
+import Capacitor
+import Resistor
+
+from "parts/NXP_Semicon_PCF8563T_5_518/NXP_Semicon_PCF8563T_5_518.ato" import NXP_Semicon_PCF8563T_5_518_package
+from "parts/Seiko_Epson_Q13FC13500004/Seiko_Epson_Q13FC13500004.ato" import Seiko_Epson_Q13FC13500004_package
+
+
+module RTC:
+    """PCF8563T I²C RTC, battery-backed via VDD_SNVS coin-cell rail."""
+
+    # ---- External interfaces ----
+    power_snvs = new ElectricPower      # VDD_SNVS (3V3 OR coin cell)
+    i2c        = new I2C
+    int_out    = new ElectricLogic      # active-low IRQ to MPU GPIO
+
+    power_snvs.required = True
+
+    # ---- IC ----
+    chip = new NXP_Semicon_PCF8563T_5_518_package
+    chip.VDD ~ power_snvs.hv
+    chip.VSS ~ power_snvs.lv
+
+    # ---- 32.768 kHz crystal ----
+    # Same Epson FC-135 series as the MPU's RTC xtal (12.5 pF Cload).
+    # PCF8563 has internal load caps (Cint ≈ 25 pF), no external caps needed.
+    xtal = new Seiko_Epson_Q13FC13500004_package
+    xtal.OSC1 ~ chip.OSCI
+    xtal.OSC2 ~ chip.OSCO
+
+    # ---- I²C ----
+    chip.SCL ~ i2c.scl.line
+    chip.SDA ~ i2c.sda.line
+    i2c.scl.reference ~ power_snvs
+    i2c.sda.reference ~ power_snvs
+
+    # I²C pull-ups (4.7 kΩ to VDD_SNVS — bus runs whenever RTC is powered)
+    pu_scl = new Resistor; pu_scl.resistance = 4.7kohm +/- 5%; pu_scl.package = "0402"
+    pu_sda = new Resistor; pu_sda.resistance = 4.7kohm +/- 5%; pu_sda.package = "0402"
+    i2c.scl.line ~> pu_scl ~> power_snvs.hv
+    i2c.sda.line ~> pu_sda ~> power_snvs.hv
+
+    # ---- nINT (open-drain, active-low) → MPU GPIO ----
+    chip.nINT ~ int_out.line
+    int_out.reference ~ power_snvs
+    pu_int = new Resistor; pu_int.resistance = 10kohm +/- 5%; pu_int.package = "0402"
+    int_out.line ~> pu_int ~> power_snvs.hv
+
+    # CLKOUT not used — leave floating per datasheet (high-Z when disabled).
+
+    # ---- Decoupling ----
+    decap = new Capacitor
+    decap.capacitance = 100nF +/- 20%
+    decap.package = "0402"
+    power_snvs.hv ~> decap ~> power_snvs.lv
+
+    # ---- I²C bus parameters ----
+    assert i2c.frequency <= 400kHz       # PCF8563 supports Fast-mode 400 kHz

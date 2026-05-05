@@ -1,0 +1,136 @@
+(footprint "TECH_PUBLIC_SRV05_4:SOT-23-6_L2.9-W1.6-P0.95-LS2.8-BL"
+	(version 20241229)
+	(generator "faebryk_convert")
+	(generator_version "v5")
+	(layer "F.Cu")
+	(tedit "5DC5F6A4")
+	(uuid "44c36b6a-e27d-4e5f-b50d-0aef5fb5004d")
+	(property "Reference" "REF**"
+		(at 0 -5.15)
+		(layer "F.SilkS")
+		(uuid "a06615c9-4687-4116-b09b-7a5c8a6a6549")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "SOT-23-6_L2.9-W1.6-P0.95-LS2.8-BL"
+		(at 0 5.15)
+		(layer "F.Fab")
+		(uuid "e66cd2e5-6064-48a1-b040-b637cf852b96")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(attr smd)
+	(fp_circle
+		(center -1.46 1.4)
+		(end -1.43 1.4)
+		(stroke
+			(width 0.06)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(locked no)
+		(uuid "0fdb6e8d-daa5-4373-bc7e-be319f4aae6a")
+	)
+	(fp_circle
+		(center -0.92 1.68)
+		(end -0.82 1.68)
+		(stroke
+			(width 0.2)
+			(type solid)
+		)
+		(layer "Cmts.User")
+		(locked no)
+		(uuid "bd603715-3cc0-485d-93d2-48d55cfb9956")
+	)
+	(fp_circle
+		(center -1.67 1.3)
+		(end -1.52 1.3)
+		(stroke
+			(width 0.3)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(locked no)
+		(uuid "217fbb33-29e1-45f2-917d-d6e54e7246d4")
+	)
+	(fp_line
+		(start 1.54 0.89)
+		(end 1.54 -0.89)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(layers "F.SilkS")
+		(locked no)
+		(uuid "ed50292e-8bb4-43d0-9821-0c19b3c58c62")
+	)
+	(fp_line
+		(start -1.54 0.89)
+		(end -1.54 -0.89)
+		(stroke
+			(width 0.15)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(layers "F.SilkS")
+		(locked no)
+		(uuid "687c266c-7d80-4cfb-8c08-5f8b99af7c81")
+	)
+	(pad "1" smd rect
+		(at -0.95 1.15 0)
+		(size 0.53 1.07)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+		(uuid "2888c4db-19ef-4639-be84-4641f4def744")
+	)
+	(pad "2" smd rect
+		(at 0 1.15 0)
+		(size 0.53 1.07)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+		(uuid "55015a73-af13-4dd4-9340-90c183070bac")
+	)
+	(pad "3" smd rect
+		(at 0.95 1.15 0)
+		(size 0.53 1.07)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+		(uuid "32dbb1e6-632c-4654-8203-551349b6d171")
+	)
+	(pad "4" smd rect
+		(at 0.95 -1.15 0)
+		(size 0.53 1.07)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+		(uuid "23201166-367f-4bc1-a0ad-a76391abac87")
+	)
+	(pad "5" smd rect
+		(at 0 -1.15 0)
+		(size 0.53 1.07)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+		(uuid "88389b3a-4990-442d-989a-c4d4b3163c10")
+	)
+	(pad "6" smd rect
+		(at -0.95 -1.15 0)
+		(size 0.53 1.07)
+		(layers "F.Cu" "F.Paste" "F.Mask")
+		(uuid "caff414c-00e4-4391-9b5d-5281771529af")
+	)
+	(model "${KIPRJMOD}/../../src/parts/TECH_PUBLIC_SRV05_4/SOT-23-6_L2.9-W1.6-H1.5-LS2.8-P0.95.step"
+		(offset
+			(xyz 0 0 -0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 0 0 270)
+		)
+	)
+	(embedded_fonts no)
+)

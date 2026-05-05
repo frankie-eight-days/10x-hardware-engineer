@@ -1,0 +1,21 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+import is_auto_generated
+
+component Seiko_Epson_Q13FC13500004_package:
+    """32.768KHz ±20ppm 12.5pF"""
+
+    # This trait marks this file as auto-generated
+    # If you want to manually change it, remove the trait
+    trait is_auto_generated<system="ato_part", source="easyeda:C32346", date="2026-05-05T15:14:46.064869+00:00", checksum="70a00ddf59c02abe1f4bfa2e39f4a1a645aee2ce8b2ea99636d9c65814b4ee40">
+
+    trait is_atomic_part<manufacturer="Seiko Epson", partnumber="Q13FC13500004", footprint="FC-135R_L3.2-W1.5.kicad_mod", symbol="Q13FC1350000400.kicad_sym", model="FC-135R_L3.2-W1.5.STEP">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C32346", manufacturer="Seiko Epson", partno="Q13FC13500004">
+    trait has_designator_prefix<prefix="X">
+    trait has_datasheet<datasheet="https://www.lcsc.com/datasheet/lcsc_datasheet_2404180925_Seiko-Epson-Q13FC13500004_C32346.pdf">
+
+    # pins
+    signal OSC1 ~ pin 1
+    signal OSC2 ~ pin 2

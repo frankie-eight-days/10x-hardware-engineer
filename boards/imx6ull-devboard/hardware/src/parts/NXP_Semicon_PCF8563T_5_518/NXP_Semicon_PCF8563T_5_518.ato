@@ -1,0 +1,25 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+import is_auto_generated
+
+component NXP_Semicon_PCF8563T_5_518_package:
+    # This trait marks this file as auto-generated
+    # If you want to manually change it, remove the trait
+    trait is_auto_generated<system="ato_part", source="easyeda:C7440", date="2026-05-05T15:14:50.038093+00:00", checksum="b1a14bffb99a46d16d0441514105fd2db4e0bb5071bba356f99dffe704458f66">
+
+    trait is_atomic_part<manufacturer="NXP Semicon", partnumber="PCF8563T/5,518", footprint="SOIC-8_L5.0-W4.0-P1.27-LS6.0-BL.kicad_mod", symbol="PCF8563T_5,518.kicad_sym", model="SOIC-8_L4.9-W3.9-H1.7-LS6.0-P1.27.STEP">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C7440", manufacturer="NXP Semicon", partno="PCF8563T/5,518">
+    trait has_designator_prefix<prefix="U">
+    trait has_datasheet<datasheet="https://www.nxp.com/docs/en/data-sheet/PCF8563.pdf">
+
+    # pins
+    signal CLKOUT ~ pin 7
+    signal OSCI ~ pin 1
+    signal OSCO ~ pin 2
+    signal SCL ~ pin 6
+    signal SDA ~ pin 5
+    signal VDD ~ pin 8
+    signal VSS ~ pin 4
+    signal nINT ~ pin 3

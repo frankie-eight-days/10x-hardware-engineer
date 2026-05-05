@@ -21,11 +21,13 @@ import JTAG
 import DifferentialPair
 import Capacitor
 import Resistor
-import Crystal
+import I2C
 
 from "atopile/microchip-lan8742a/microchip-lan8742a.ato" import RMII
 from "atopile/microchip-lan8742a/microchip-lan8742a.ato" import MDIO
 from "parts/NXP_Semicon_MCIMX6Y2CVM08AB/NXP_Semicon_MCIMX6Y2CVM08AB.ato" import NXP_Semicon_MCIMX6Y2CVM08AB_package
+from "parts/Yangxing_Tech_X322524MOB4SI/Yangxing_Tech_X322524MOB4SI.ato" import Yangxing_Tech_X322524MOB4SI_package
+from "parts/Seiko_Epson_Q13FC13500004/Seiko_Epson_Q13FC13500004.ato" import Seiko_Epson_Q13FC13500004_package
 
 
 # ----- DDR3 bus interface (custom; not in stdlib) -----
@@ -81,9 +83,10 @@ module MPU:
     sd_cd       = new ElectricLogic
     uart2       = new UART_Base           # to CH340N + TTL header (NOT UART1 — boot SDP)
     sai3        = new I2S                 # SAI3 (NOT SAI2 — see note); to MAX98357A
-    usb_otg1    = new DifferentialPair    # D+/D- to USB-C #2
-    usb_otg1_vbus_sense = new ElectricLogic
-    usb_otg1_id = new ElectricLogic
+    i2c1        = new I2C                 # peripheral I²C: RTC, future expansion (PMIC, sensors)
+    rtc_int     = new ElectricLogic       # PCF8563 IRQ (active-low) on GPIO1_IO04
+    usb_otg1     = new DifferentialPair    # D+/D- to USB-C #2
+    usb_otg1_vbus = new Electrical         # VBUS (5V from cable) to OTG1 VBUS detect
     jtag        = new JTAG
     reset       = new ElectricLogic     # POR_B
     heartbeat   = new ElectricLogic
@@ -232,26 +235,25 @@ module MPU:
     package.JTAG_MOD ~> r_jtagmod ~> power_3v3.lv
 
     # ============= Crystals =============
-    # 24 MHz main system clock — Crystal stdlib + 22pF load caps
-    # Picker chooses a real part with ≥50ppm accuracy; we just specify nominal.
-    xtal_main = new Crystal
-    xtal_main.frequency = 24MHz +/- 1%
-    xtal_main.load_capacitance = 12pF +/- 20%
-    xtal_main.unnamed[0] ~ package.XTALI
-    xtal_main.unnamed[1] ~ package.XTALO
-    xtal_main.gnd ~ power_3v3.lv
+    # 24 MHz main system clock: YXC X322524MOB4SI (3.2x2.5 SMD, 12pF, ±10ppm).
+    # i.MX 6ULL HDG mandates 12pF load → use Cl = 2*(CL - Cstray) ≈ 2*(12-3) = 18pF
+    # per pin, but Murata note says 22pF works fine for 12pF crystals with
+    # typical board stray ~3pF. Stick with 22pF here.
+    xtal_main = new Yangxing_Tech_X322524MOB4SI_package
+    xtal_main.OSC1 ~ package.XTALI
+    xtal_main.OSC2 ~ package.XTALO
+    xtal_main.GND  ~ power_3v3.lv
     cap_xtal_a = new Capacitor; cap_xtal_a.capacitance = 22pF +/- 5%; cap_xtal_a.package = "0402"
     cap_xtal_b = new Capacitor; cap_xtal_b.capacitance = 22pF +/- 5%; cap_xtal_b.package = "0402"
     package.XTALI ~> cap_xtal_a ~> power_3v3.lv
     package.XTALO ~> cap_xtal_b ~> power_3v3.lv
 
-    # 32.768 kHz RTC crystal — internal load caps in SNVS domain per HDG
-    xtal_rtc = new Crystal
-    xtal_rtc.frequency = 32.768kHz +/- 1%
-    xtal_rtc.load_capacitance = 12.5pF +/- 20%
-    xtal_rtc.unnamed[0] ~ package.RTC_XTALI
-    xtal_rtc.unnamed[1] ~ package.RTC_XTALO
-    xtal_rtc.gnd ~ power_3v3.lv
+    # 32.768 kHz RTC crystal: Epson FC-135 Q13FC13500004 (3.2x1.5 cyl, 12.5pF).
+    # i.MX 6ULL has internal load caps in the SNVS oscillator (HDG §"RTC Oscillator").
+    # No external load caps on this xtal.
+    xtal_rtc = new Seiko_Epson_Q13FC13500004_package
+    xtal_rtc.OSC1 ~ package.RTC_XTALI
+    xtal_rtc.OSC2 ~ package.RTC_XTALO
 
     # ============= DDR3 bus mapping (16-bit single-chip) =============
     package.DRAM_ADDR00 ~ ddr3.addr[0].line; package.DRAM_ADDR01 ~ ddr3.addr[1].line
@@ -364,33 +366,47 @@ module MPU:
     sd_cd.reference ~ power_3v3
 
     # ============= USB OTG1 =============
-    # D+/D- direct to USB-C connector. VBUS pin gets a divider so the on-chip
-    # comparator never exceeds 5.5V (datasheet §6.4.4 USB VBUS protection).
+    # D+/D- direct to USB-C connector. USB_OTG1_VBUS is a 5V-tolerant detect
+    # input (VBUS_VALID threshold ~4.4V per IMX6ULLRM §66.4.4); per NXP
+    # AN12028 we put a 100Ω current-limit resistor in series to VBUS.
     package.USB_OTG1_DP   ~ usb_otg1.p.line
     package.USB_OTG1_DN   ~ usb_otg1.n.line
     usb_otg1.p.reference  ~ power_3v3
     usb_otg1.n.reference  ~ power_3v3
 
-    # VBUS sense divider: 5V → ~3.0V via 20kΩ/30kΩ (Vsense = Vbus * 30/(20+30) = 3V)
-    r_vbus_top = new Resistor
-    r_vbus_top.resistance = 20kohm +/- 1%
-    r_vbus_top.package = "0402"
-    r_vbus_bot = new Resistor
-    r_vbus_bot.resistance = 30kohm +/- 1%
-    r_vbus_bot.package = "0402"
-    usb_otg1_vbus_sense.line ~> r_vbus_top ~> package.USB_OTG1_VBUS
-    package.USB_OTG1_VBUS ~> r_vbus_bot ~> power_3v3.lv
-    usb_otg1_vbus_sense.reference ~ power_3v3
+    r_vbus = new Resistor
+    r_vbus.resistance = 100ohm +/- 5%
+    r_vbus.package = "0402"
+    usb_otg1_vbus ~> r_vbus ~> package.USB_OTG1_VBUS
 
-    # USB OTG ID on GPIO1_IO00 (ALT2 = ANATOP_OTG1_ID)
-    package.GPIO1_IO00 ~ usb_otg1_id.line
-    usb_otg1_id.reference ~ power_3v3
+    # USB OTG ID on GPIO1_IO00 (ALT2 = ANATOP_OTG1_ID). Pull HIGH to 3V3 via
+    # 100kΩ → device mode by default (UFP). Pull-down would force host mode.
+    r_otg_id = new Resistor
+    r_otg_id.resistance = 100kohm +/- 5%
+    r_otg_id.package = "0402"
+    package.GPIO1_IO00 ~> r_otg_id ~> power_3v3.hv
 
     # ============= UART2 console =============
     package.UART2_TX_DATA ~ uart2.tx.line
     package.UART2_RX_DATA ~ uart2.rx.line
     uart2.tx.reference ~ power_3v3
     uart2.rx.reference ~ power_3v3
+
+    # ============= I²C1 (peripheral bus) =============
+    # Per imx6ul-pinfunc.h:
+    #   MX6UL_PAD_UART4_TX_DATA__I2C1_SCL — ALT2
+    #   MX6UL_PAD_UART4_RX_DATA__I2C1_SDA — ALT2
+    # UART4 is unused; using its pads as I²C1 keeps UART1 free for boot SDP and
+    # leaves UART3/5 available. RTC is the only initial consumer; bus is
+    # multi-drop for future PMIC/sensor expansion.
+    package.UART4_TX_DATA ~ i2c1.scl.line
+    package.UART4_RX_DATA ~ i2c1.sda.line
+    i2c1.scl.reference ~ power_3v3
+    i2c1.sda.reference ~ power_3v3
+
+    # RTC IRQ on GPIO1_IO04 (free pad, ALT5 = GPIO1_IO04)
+    package.GPIO1_IO04 ~ rtc_int.line
+    rtc_int.reference ~ power_3v3
 
     # ============= SAI3 I²S audio =============
     # IMPORTANT: SAI2 cannot be used here — its only mux options are JTAG balls

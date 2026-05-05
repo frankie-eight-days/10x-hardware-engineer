@@ -10,21 +10,23 @@ Current atopile: **v0.15.7 (April 2026)**. Docs URL slug is pinned to `atopile-0
 
 ## Project state (2026-05-05)
 
-**Build status:** ✓ `ato build` succeeds. 58-line BOM, 1.26 MB `default.kicad_pcb` generated. **DDR3 instantiation commented out in `src/main.ato`** due to a build-time blocker (see below).
+**Build status:** ✓ `ato build` succeeds with **all 11 subsystems**. 66-line BOM, KiCad PCB generated.
 
-**Subsystems shipped (8/9):**
+**Subsystems shipped (11/11):**
 
 | Subsystem | File | Notes |
 |---|---|---|
 | Power Input | `src/power_input.ato` | USB-C + bench OR'd via 2× SS54 + AO3401A rev-pol |
 | Power Tree | `src/power_tree.ato` | 3× LocalBuck (forked) + LDO chain — see `src/parts/local_buck/` |
-| Ethernet | `src/network.ato` | LAN8742A wrapper with reviewer fixes (nINTSEL strap + 49.9Ω MDI term) |
+| Ethernet | `src/network.ato` | LAN8742A wrapper + HR911105A magjack + Bob Smith network + LEDs |
 | USB-UART | `src/usb_uart.ato` | CH340N → USB-C #3 → MPU UART2 |
+| USB-C OTG | `src/usb_otg.ato` | USB-C #2 → MPU OTG1, UFP/device default, 100Ω VBUS series |
 | Audio | `src/audio.ato` | MAX98357A I²S (1MΩ pull-up for stereo-sum mode) |
 | microSD | `src/microsd.ato` | SOFNG TF-015, 22µF bulk, 4-bit @ 3V3 |
 | Debug | `src/debug.ato` | JTAG header + reset + boot DIP + LEDs + coin cell |
-| MPU | `src/mpu.ato` | i.MX 6ULL pinmux verified against datasheet Tables 90/91/92 + EVK DTS |
-| **DDR3** ⚠️ | `src/ddr3.ato` | Schematic side complete + datasheet-verified, **build-blocked** |
+| MPU | `src/mpu.ato` | i.MX 6ULL pinmux + real crystals (24 MHz YXC + 32.768 kHz Epson) + I²C1 on UART4 pads |
+| DDR3 | `src/ddr3.ato` | Nanya NT5CC128M16JR-EK 256 MB; needed silkscreen rect added to `.kicad_mod` (atopile bbox bug — see gotcha #7) |
+| RTC | `src/rtc.ato` | NXP PCF8563T I²C RTC, battery-backed via VDD_SNVS, with own Epson 32.768 kHz xtal |
 
 **Top-level wiring** in `src/main.ato:Board`. Rails have `override_net_name` (VCC_5V, VCC_3V3, etc.) — required for atopile's PCB writer not to crash on auto-name collisions.
 
@@ -42,7 +44,22 @@ Current atopile: **v0.15.7 (April 2026)**. Docs URL slug is pinned to `atopile-0
 
 6. **`pin` is a reserved keyword** for child variable names. Don't name a sub-module `pin`. Use `pin_in` or similar.
 
-## ⚠️ DDR3 BUILD BLOCKER — context for resume
+7. **Silkscreen-only-Circle footprints crash `set_designator_positions`.** Symptoms: `min() iterable argument is empty` during `Updating PCB` stage on a freshly-added BGA/QFP whose `.kicad_mod` has only `fp_circle` shapes on `F.SilkS` (typical of EasyEDA-imported BGA pin-1 dot patterns). Cause: upstream atopile bug — `faebryk/exporters/pcb/kicad/transformer.py:get_bbox_from_geos` has a TODO `...` stub for the `Circle` branch (also for `Arc`), so silk-extreme list is empty, then `Geometry.bbox` calls `min()` on it. Fix: edit the `.kicad_mod` and add an `fp_rect` body outline on F.SilkS so the bbox has actual extents. Hit this with the Nanya DDR3 (96 circles, zero rects). The diagnostic clue (net renames before crash) is a red herring — those are just info logs that happen first; the crash is in `update_pcb` → `set_designator_positions` → `get_bounding_box`.
+
+## DDR3 build blocker — RESOLVED
+
+**The "blocker" was upstream atopile bug #7 above** (silkscreen-only-circles in Nanya's auto-imported footprint). Fix applied: `fp_rect` body outline added at `src/parts/Nanya_Tech_NT5CC128M16JR_EK/TFBGA-96_*.kicad_mod` (corners ±3.75 × ±6.5 mm matching the 7.5×13.0mm body). DDR3 module is now live in `main.ato` and builds clean.
+
+Stack trace was hidden in `~/Library/Logs/atopile/build_logs.db` table `logs` column `python_traceback` — query with:
+```bash
+sqlite3 ~/Library/Logs/atopile/build_logs.db \
+  "SELECT python_traceback FROM logs WHERE message='min() iterable argument is empty' ORDER BY id DESC LIMIT 1"
+```
+Returns JSON with full frames + locals — that's where the actual line number lives even when `ato build` only prints the bare error message.
+
+(Earlier debug-context section preserved below for reference.)
+
+## ⚠️ DDR3 BUILD BLOCKER — context for resume (HISTORICAL — see resolution above)
 
 **Symptom:** `ato build` fails with single-line error `min() iterable argument is empty` during `Updating PCB` stage, **as soon as the DDR3 chip is instantiated**, even with zero connections to it.
 

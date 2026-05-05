@@ -15,10 +15,9 @@ Still open (need follow-up):
   - Crystal load caps: upstream package sets 18pF; correct value is 27–30pF
     given typical 3–6 pF/leg PCB stray (CL=18pF parallel-resonance math).
     Cannot override in wrapper — needs upstream fork or PR.
-  - HR911105A magjack with Bob Smith network + chassis Y-cap + ESD diodes.
   - Ferrite-bead VDDA split + RXCT 22nF cap (Microchip Checklist Fig. 2).
-  - LED1/LED2 wiring polarity (drives REGOFF strap behaviour) — handled in
-    Debug subsystem when we wire front-panel status LEDs.
+  - Cable-side ESD: SRV05-4 part is created in src/parts/ but unused for v0
+    (integrated magjack provides ~1500V isolation through the transformer).
 
 Datasheet refs:
   - Microchip LAN8742A datasheet
@@ -32,12 +31,14 @@ Datasheet refs:
 
 import ElectricPower
 import ElectricLogic
+import Electrical
 import Capacitor
 import Resistor
 
 from "atopile/microchip-lan8742a/microchip-lan8742a.ato" import Microchip_LAN8742A
 from "atopile/microchip-lan8742a/microchip-lan8742a.ato" import RMII
 from "atopile/microchip-lan8742a/microchip-lan8742a.ato" import MDIO
+from "parts/HANRUN_HR911105A/HANRUN_HR911105A.ato" import HANRUN_HR911105A_package
 
 
 module Network:
@@ -92,10 +93,70 @@ module Network:
 
     # MDC is push-pull MAC-driven; no pull-up needed.
 
-    # TODO: HR911105A magjack subsystem
-    #   - Magnetics center taps (TXCT, RXCT) commoned via 75Ω resistors
-    #   - Unused-pair pins (4-5, 7-8) shorted, 75Ω to common
-    #   - Common node → 1nF/2kV Y-cap → chassis ground
-    #   - Bezel LEDs from phy.ethernet.led_link / led_speed (cathode-to-pin
-    #     wiring) — also fixes REGOFF strap polarity for free
-    #   - Low-cap TVS array on cable side (e.g. NXP PESD3V3L4UF)
+    # =====================================================================
+    # ----- HR911105A magjack + Bob Smith + LEDs -----
+    # =====================================================================
+    # Integrated 1×1 RJ45 with 10/100 transformer + 2 bicolor LEDs. PCB-side
+    # pinout (Hanrun datasheet, NOT the cable-side RJ pin numbering):
+    #   1=TX+, 2=TX_CT, 3=TX-, 4=RX+, 5/6=NC, 7=RX_CT, 8=RX-,
+    #   9-10=LED1, 11-12=LED2, SH1/SH2=shield tabs (chassis GND).
+    # See docs/subsystems/ethernet.md for the full design notes.
+    magjack = new HANRUN_HR911105A_package
+
+    # MDI: connect PHY-side TX/RX directly to magjack PCB-side primary pads.
+    # The 49.9Ω terminations above are bias-to-VDDA in parallel, not series,
+    # so the trace goes direct from PHY pad → magjack pad.
+    phy.package.TXP ~ magjack.TX_P
+    phy.package.TXN ~ magjack.TX_N
+    phy.package.RXP ~ magjack.RX_P
+    phy.package.RXN ~ magjack.RX_N
+
+    # ----- Bob Smith termination -----
+    # 2× 75Ω from each transformer center tap to a common Bob Smith node, then
+    # 1nF / 2kV X1Y1 from that node to chassis GND. Common-mode termination
+    # for line noise + ESD bleed without violating IEEE isolation. Microchip
+    # LAN8742A QFN EVB schematic (evb8742_sch) shows this exact topology for
+    # integrated magjacks.
+    chassis_gnd = new Electrical
+    chassis_gnd.override_net_name = "CHASSIS_GND"
+
+    bobsmith_node = new Electrical
+    bobsmith_node.override_net_name = "BOB_SMITH"
+
+    r_tx_ct = new Resistor; r_tx_ct.resistance = 75ohm +/- 1%; r_tx_ct.package = "0402"
+    r_rx_ct = new Resistor; r_rx_ct.resistance = 75ohm +/- 1%; r_rx_ct.package = "0402"
+    magjack.TX_CT ~> r_tx_ct ~> bobsmith_node
+    magjack.RX_CT ~> r_rx_ct ~> bobsmith_node
+
+    c_bobsmith = new Capacitor
+    c_bobsmith.capacitance = 1nF +/- 20%
+    c_bobsmith.package = "0805"               # 2 kV requires 0805 minimum
+    bobsmith_node ~> c_bobsmith ~> chassis_gnd
+
+    # Magjack shield tabs → chassis GND
+    magjack.SHIELD1 ~ chassis_gnd
+    magjack.SHIELD2 ~ chassis_gnd
+
+    # Static drain: 1 MΩ from chassis GND to digital GND for DC bleed without
+    # creating a low-impedance ground loop (Microchip recommended).
+    r_chassis_drain = new Resistor
+    r_chassis_drain.resistance = 1Mohm +/- 5%
+    r_chassis_drain.package = "0402"
+    chassis_gnd ~> r_chassis_drain ~> power_3v3.lv
+
+    # NC pins: leave floating (5, 6 inside the magjack are not bonded out).
+
+    # ----- Bezel LEDs -----
+    # LAN8742A drives LEDs active-low (cathode to PHY pin). Anode → 330Ω → 3V3.
+    # LED1 = link (yellow on most magjacks), LED2 = speed/activity (green).
+    r_led_link = new Resistor
+    r_led_link.resistance = 330ohm +/- 5%
+    r_led_link.package = "0402"
+    r_led_speed = new Resistor
+    r_led_speed.resistance = 330ohm +/- 5%
+    r_led_speed.package = "0402"
+
+    power_3v3.hv ~> r_led_link  ~> magjack.LED1_A
+    power_3v3.hv ~> r_led_speed ~> magjack.LED2_A
+    magjack.LED1_K ~ phy.ethernet.led_link.line
+    magjack.LED2_K ~ phy.ethernet.led_speed.line

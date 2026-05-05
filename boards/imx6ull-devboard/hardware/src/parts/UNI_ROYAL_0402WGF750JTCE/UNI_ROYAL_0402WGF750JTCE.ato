@@ -1,0 +1,21 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+import is_auto_generated
+
+component UNI_ROYAL_0402WGF750JTCE_package:
+    """75Ω (75R0) ±1%"""
+
+    # This trait marks this file as auto-generated
+    # If you want to manually change it, remove the trait
+    trait is_auto_generated<system="ato_part", source="easyeda:C25133", date="2026-05-05T15:30:04.915208+00:00", checksum="45c1115a6bb753f8869f045e84ebff596b05c0491cdf3d648b35df695d2d7f05">
+
+    trait is_atomic_part<manufacturer="UNI-ROYAL", partnumber="0402WGF750JTCE", footprint="R0402.kicad_mod", symbol="0402WGF750JTCE.kicad_sym", model="R0402_L1.0-W0.5-H0.4.step">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C25133", manufacturer="UNI-ROYAL", partno="0402WGF750JTCE">
+    trait has_designator_prefix<prefix="R">
+    trait has_datasheet<datasheet="https://www.lcsc.com/datasheet/lcsc_datasheet_2205311900_UNI-ROYAL-Uniroyal-Elec-0402WGF750JTCE_C25133.pdf">
+
+    # pins
+    pin 2
+    pin 1
