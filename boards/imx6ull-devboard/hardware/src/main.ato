@@ -6,8 +6,11 @@
 import ElectricPower
 import ElectricLogic
 
+import UART_Base
+
 from "network.ato" import Network
 from "power_tree.ato" import PowerTree
+from "usb_uart.ato" import USBUart
 from "atopile/microchip-lan8742a/microchip-lan8742a.ato" import RMII
 from "atopile/microchip-lan8742a/microchip-lan8742a.ato" import MDIO
 
@@ -48,3 +51,10 @@ module Board:
     network.rmii  ~ rmii_to_mpu
     network.mdio  ~ mdio_to_mpu
     network.reset ~ enet_reset_from_mpu
+
+    # ---- USB-UART console ----
+    console = new USBUart
+    uart1_to_mpu = new UART_Base
+    console.power_5v  ~ power_5v
+    console.power_3v3 ~ power_3v3
+    console.uart      ~ uart1_to_mpu

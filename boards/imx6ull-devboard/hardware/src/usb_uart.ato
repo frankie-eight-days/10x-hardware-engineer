@@ -1,0 +1,91 @@
+"""USB-UART console subsystem.
+
+CH340N (SOP-8) USB-to-UART bridge. Powered from 5V_BOARD (always-on).
+USB-C #3 (TYPE-C-31-M-17, commonized with PD + OTG ports) provides D+/D-.
+Also exposes a 4-pin TTL header on the same MPU UART1 lines for USB-TTL fallback.
+
+CH340N pin map (SOP-8):
+  1 UD+        ─→ USB-C D+
+  2 UD-        ─→ USB-C D-
+  3 GND        ─ board GND
+  4 nRTS       ─ floating (no flow control)
+  5 VCC        ← 5V_BOARD
+  6 TXD        ─→ MPU UART1_RX (via 33Ω series)
+  7 RXD        ←─ MPU UART1_TX (via 33Ω series)
+  8 V3         ─ 100nF to GND (internal LDO output decoupling)
+
+Datasheet: WCH CH340DS1 §3 (Pin Description), §4 (Power Supply).
+"""
+
+#pragma experiment("BRIDGE_CONNECT")
+#pragma experiment("FOR_LOOP")
+
+import ElectricPower
+import ElectricLogic
+import UART_Base
+import Capacitor
+import Resistor
+
+from "atopile/usb-connectors/usb-connectors.ato" import USB2_0TypeCHorizontalConnector
+from "parts/WCH_CH340N/WCH_CH340N.ato" import WCH_CH340N_package
+
+
+module USBUart:
+    """USB-C → CH340N → UART1 console with TTL header fallback."""
+
+    # External interfaces
+    power_5v  = new ElectricPower
+    power_5v.required = True
+    power_3v3 = new ElectricPower    # for the TTL header power pin only
+    uart      = new UART_Base
+    uart.required = True
+
+    # USB-C connector (third on the board, same part for commonization)
+    usbc = new USB2_0TypeCHorizontalConnector
+
+    # CH340N package
+    chip = new WCH_CH340N_package
+
+    # Power & ground
+    chip.VCC ~ power_5v.hv
+    chip.GND ~ power_5v.lv
+
+    # USB D+/D-
+    chip.UDpos ~ usbc.usb.usb_if.d.p.line
+    chip.UDneg ~ usbc.usb.usb_if.d.n.line
+
+    # USB-C VBUS goes to power_5v.hv (CC pulldowns from package make it a sink).
+    # We connect VBUS so CC negotiation works when host applies 5V; we don't
+    # actually consume VBUS power — CH340N is fed from 5V_BOARD.
+    usbc.usb.usb_if.buspower ~ power_5v
+
+    # V3 internal LDO decap
+    cap_v3 = new Capacitor
+    cap_v3.capacitance = 100nF +/- 20%
+    cap_v3.package = "0402"
+    chip.V3 ~> cap_v3 ~> power_5v.lv
+
+    # VCC decap
+    cap_vcc = new Capacitor
+    cap_vcc.capacitance = 100nF +/- 20%
+    cap_vcc.package = "0402"
+    power_5v.hv ~> cap_vcc ~> power_5v.lv
+
+    # ---- UART lines with 33Ω series ----
+    # Edge-rate slow + accidental-short current limit.
+    r_tx = new Resistor
+    r_rx = new Resistor
+    r_tx.resistance = 33ohm +/- 5%; r_tx.package = "0402"
+    r_rx.resistance = 33ohm +/- 5%; r_rx.package = "0402"
+
+    # CH340N.TXD ─[33Ω]─ MPU.UART1_RX  (CH340N transmits to MPU)
+    chip.TXD ~> r_tx ~> uart.rx.line
+    # CH340N.RXD ─[33Ω]─ MPU.UART1_TX  (CH340N receives from MPU)
+    chip.RXD ~> r_rx ~> uart.tx.line
+
+    # UART logic level reference (3.3V — CH340N V3 internal LDO)
+    uart.tx.reference ~ power_3v3
+    uart.rx.reference ~ power_3v3
+
+    # TODO: 4-pin TTL header (GND, 3V3, TX, RX) tapped to same uart.tx/rx lines.
+    # Will add via a generic pin-header part once we land headers in Debug subsystem.

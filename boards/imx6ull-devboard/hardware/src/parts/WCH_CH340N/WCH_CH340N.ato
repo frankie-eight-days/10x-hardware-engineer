@@ -1,0 +1,25 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+import is_auto_generated
+
+component WCH_CH340N_package:
+    # This trait marks this file as auto-generated
+    # If you want to manually change it, remove the trait
+    trait is_auto_generated<system="ato_part", source="easyeda:C2977777", date="2026-05-05T03:17:21.001972+00:00", checksum="c2bbfa68aebb92e7a401858e166c9e402ec8a180085927f20963a582606cfe48">
+
+    trait is_atomic_part<manufacturer="WCH", partnumber="CH340N", footprint="SOP-8_L4.9-W3.9-P1.27-LS6.0-BL.kicad_mod", symbol="CH340N_C2977777.kicad_sym", model="SOP-8_L4.9-W3.9-P1.27-LS6.0-BL-1.STEP">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C2977777", manufacturer="WCH", partno="CH340N">
+    trait has_designator_prefix<prefix="U">
+    trait has_datasheet<datasheet="https://wmsc.lcsc.com/wmsc/upload/file/pdf/v2/lcsc/2403131131_WCH-Jiangsu-Qin-Heng-CH340N_C2977777.pdf">
+
+    # pins
+    signal GND ~ pin 3
+    signal RXD ~ pin 7
+    signal TXD ~ pin 6
+    signal UDneg ~ pin 2
+    signal UDpos ~ pin 1
+    signal V3 ~ pin 8
+    signal VCC ~ pin 5
+    signal nRTS ~ pin 4
