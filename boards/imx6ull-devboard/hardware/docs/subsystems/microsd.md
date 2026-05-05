@@ -70,8 +70,19 @@ module MicroSD:
     cd         : ElectricLogic     # to MPU GPIO (card-detect)
 ```
 
+## Reviewer findings (batch review 2026-05-04)
+
+| Sev | Issue | Status |
+|---|---|---|
+| High | VDD bulk 10µF undersized for 200mA SD inrush | **FIXED** — bumped to 22µF X5R 0805 |
+| High | TF-015 CD switch pin mapping unverified | **TODO** — verify against SOFNG mechanical drawing (the part may use different pins for the discrete CD contacts vs the SD pinout's pin 9) |
+| Medium | DAT pull-ups duplicate i.MX internal pulls | NOTED — keep external for deterministic startup; ~30kΩ effective draws negligible current |
+| Medium | No ESD on user-touched card contacts | TODO — small TVS array (e.g. SP3010-04 or PRTR5V0U2X) |
+| Medium | No card-power-cycle FET — wedged-card boot risk | **DOCUMENTED** — accepted for v0, dev-board can be physically power-cycled. v2 candidate. |
+| Low | 50 MHz CLK EMI near MDI / antennas | **LAYOUT FLAG** — keep CLK trace >5 mm from any RF / Ethernet MDI traces; route under continuous GND plane. |
+
 ## Open questions / TODOs
 
-- [ ] Decide if we want a card-power-cycle FET. Skipped for v0.
-- [ ] Verify SOFNG TF-015 footprint matches the JLC assembly stencil — push-push slots can have 0.5mm-pitch hold-down tabs that JLC might fight.
+- [ ] Verify SOFNG TF-015 mechanical CD switch contact pin numbers.
 - [ ] When MPU pinmux lands, route USDHC1 to balls with NVCC_SD1 = 3V3 by default.
+- [ ] First-article: try multiple SD-card brands; cheap cards have widely varying inrush.

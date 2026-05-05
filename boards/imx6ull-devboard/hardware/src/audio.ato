@@ -57,9 +57,14 @@ module Audio:
     i2s.ws.reference  ~ power_3v3
     i2s.sd.reference  ~ power_3v3
 
-    # ---- nSD_MODE: tied to VDD via 100kΩ → "active, stereo sum" ----
+    # ---- nSD_MODE: 1MΩ pull-up to VDD → "active, stereo (L+R)/2 sum" ----
+    # Reviewer fix: chip has 100kΩ internal pulldown. With a 100kΩ external
+    # pullup, SD = VDD/2 = 1.65V which selects "Left only" mode (>1.4V band).
+    # For Stereo sum we need SD between 0.16V and 0.77V. With internal 100kΩ
+    # pulldown:  V_SD = 3.3V × 100k/(R_ext + 100k). Pick R_ext = 1MΩ:
+    #     V_SD = 3.3 × 100k/1.1M = 0.30V → Stereo sum band ✓
     r_nsd = new Resistor
-    r_nsd.resistance = 100kohm +/- 5%
+    r_nsd.resistance = 1Mohm +/- 5%
     r_nsd.package = "0402"
     chip.nSD_MODE ~> r_nsd ~> power_3v3.hv
 
@@ -77,14 +82,12 @@ module Audio:
     power_3v3.hv ~> cap_vdd_mf ~> power_3v3.lv
     power_3v3.hv ~> cap_vdd_lf ~> power_3v3.lv
 
-    # ---- Output ferrite-bead + 1nF snubber, both legs ----
-    # Ferrite (Sunlord GZ2012D601TF, C1017) commonized with power tree.
-    ferrite_p = new Inductor; ferrite_p.lcsc_id = "C1017"
-    ferrite_n = new Inductor; ferrite_n.lcsc_id = "C1017"
-    chip.OUTP ~> ferrite_p ~> speaker_p
-    chip.OUTN ~> ferrite_n ~> speaker_n
-
-    snub_p = new Capacitor; snub_p.capacitance = 1nF +/- 10%; snub_p.package = "0402"
-    snub_n = new Capacitor; snub_n.capacitance = 1nF +/- 10%; snub_n.package = "0402"
-    speaker_p ~> snub_p ~> power_3v3.lv
-    speaker_n ~> snub_n ~> power_3v3.lv
+    # ---- Output: filterless mode (datasheet §"Output Filtering") ----
+    # Reviewer fix: ferrite + 1nF was wrong — at 600Ω@100MHz / 1nF the LC
+    # corner is ~16MHz, way above Class-D's 300kHz switching freq. Datasheet
+    # explicitly says "do not mix the optional ferrite filter with the optional
+    # LC filter" and recommends FILTERLESS for short cables (<30cm).
+    # OUTP/OUTN go straight to speaker pads; layout will keep the traces short
+    # and twisted-pair to minimize EMI.
+    chip.OUTP ~ speaker_p
+    chip.OUTN ~ speaker_n

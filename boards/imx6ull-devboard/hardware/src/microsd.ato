@@ -86,8 +86,10 @@ module MicroSD:
     r_cd.package = "0402"
     cd.line ~> r_cd ~> power_3v3.hv
 
-    # VDD decoupling: 100nF + 10µF
-    cap_hf = new Capacitor; cap_hf.capacitance = 100nF +/- 20%; cap_hf.package = "0402"
-    cap_lf = new Capacitor; cap_lf.capacitance = 10uF +/- 20%;  cap_lf.package = "0805"
-    power_3v3.hv ~> cap_hf ~> power_3v3.lv
-    power_3v3.hv ~> cap_lf ~> power_3v3.lv
+    # VDD decoupling sized for SD inrush — cards can pull 200mA peak during
+    # init (SD Spec §6.4.1.1). Reviewer fix: 10µF is undersized; 22µF X5R
+    # absorbs the transient with <50mV droop.
+    cap_hf   = new Capacitor; cap_hf.capacitance = 100nF +/- 20%; cap_hf.package = "0402"
+    cap_bulk = new Capacitor; cap_bulk.capacitance = 22uF +/- 20%; cap_bulk.package = "0805"
+    power_3v3.hv ~> cap_hf   ~> power_3v3.lv
+    power_3v3.hv ~> cap_bulk ~> power_3v3.lv

@@ -1,0 +1,28 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+import is_auto_generated
+
+component Hynetek_HUSB238_002DD_package:
+    # This trait marks this file as auto-generated
+    # If you want to manually change it, remove the trait
+    trait is_auto_generated<system="ato_part", source="easyeda:C7471904", date="2026-05-05T03:27:37.265852+00:00", checksum="bb75472a066ac3e779efd34ecbdcbe52f60b971a23537d25ecc937cb8badfbb4">
+
+    trait is_atomic_part<manufacturer="Hynetek", partnumber="HUSB238_002DD", footprint="DFN-10_L3.0-W3.0-P0.50-BL-EP2.5.kicad_mod", symbol="HUSB238_002DD.kicad_sym", model="DFN-10_L3.0-W3.0-P0.50-BL-EP2.5.STEP">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C7471904", manufacturer="Hynetek", partno="HUSB238_002DD">
+    trait has_designator_prefix<prefix="U">
+    trait has_datasheet<datasheet="https://wmsc.lcsc.com/wmsc/upload/file/pdf/v2/lcsc/2404071728_Hynetek-HUSB238-002DD_C7471904.pdf">
+
+    # pins
+    signal CC1 ~ pin 4
+    signal CC2 ~ pin 5
+    signal Dneg ~ pin 3
+    signal Dpos ~ pin 2
+    signal GATE ~ pin 10
+    signal GND ~ pin 11
+    signal ISET ~ pin 9
+    signal SCL ~ pin 7
+    signal SDA ~ pin 6
+    signal VIN ~ pin 1
+    signal VSET ~ pin 8

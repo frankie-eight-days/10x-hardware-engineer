@@ -1,0 +1,21 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+import is_auto_generated
+
+component Samsung_Electro_Mechanics_CL31A107MQHNNNE_package:
+    """100uF (107) ±20% 6.3V"""
+
+    # This trait marks this file as auto-generated
+    # If you want to manually change it, remove the trait
+    trait is_auto_generated<system="ato_part", source="easyeda:C15008", date="2026-05-05T03:37:03.836765+00:00", checksum="35dfc797c93b98c43bd69e6b369bae30121d6a696e96d0a45eea4951c7298d29">
+
+    trait is_atomic_part<manufacturer="Samsung Electro-Mechanics", partnumber="CL31A107MQHNNNE", footprint="C1206.kicad_mod", symbol="CL31A107MQHNNNE.kicad_sym", model="C1206_L3.2-W1.6-H1.3.step">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C15008", manufacturer="Samsung Electro-Mechanics", partno="CL31A107MQHNNNE">
+    trait has_designator_prefix<prefix="C">
+    trait has_datasheet<datasheet="https://www.lcsc.com/datasheet/lcsc_datasheet_2304140030_Samsung-Electro-Mechanics-CL31A107MQHNNNE_C15008.pdf">
+
+    # pins
+    pin 1
+    pin 2

@@ -1,0 +1,89 @@
+"""Power Input: USB-C 5V sink + bench supply with rev-pol P-FET → OR'd 5V_BOARD.
+
+v0 simplification: dropped the HUSB238 PD controller.
+
+The atopile `USB2_0TypeCHorizontalConnector` package already integrates:
+  - 5.1kΩ Rd pulldowns on CC1/CC2 (advertises USB-C sink role)
+  - 500mA hold / 1A trip self-resetting fuse on VBUS
+  - USB BC1.2 / ESD protection on D+/D-
+This is sufficient for "draw 5V from any compliant USB-C source."
+
+For 5V at >100mA, we rely on the source's Rp advertisement (typical wall charger: 1.5A or 3A capable). No PD negotiation needed.
+
+If we ever want PD-negotiated higher voltages or diagnostic readback, swap in the
+HUSB238 (atomic part is in src/parts/Hynetek_HUSB238_002DD/, ready to use).
+
+Two manual-select sources combined through 5A Schottkys. Never both connected.
+
+   USB-C #1 ─[built-in 5.1kΩ Rd, fuse, ESD]─ SS54 ─┐
+                                                    ├── 5V_BOARD
+   Bench    ────────[AO3401A rev-pol P-FET]── SS54 ┘
+
+Datasheet refs:
+  - AO3401A datasheet §DC characteristics
+  - MDD SS54 (Schottky 40V 5A SMA)
+"""
+
+#pragma experiment("BRIDGE_CONNECT")
+#pragma experiment("FOR_LOOP")
+
+import ElectricPower
+import Capacitor
+import Resistor
+import Diode
+import MOSFET
+
+from "atopile/usb-connectors/usb-connectors.ato" import USB2_0TypeCHorizontalConnector
+from "parts/DIBO_DB910_6_35_2P_GN_S/DIBO_DB910_6_35_2P_GN_S.ato" import DIBO_DB910_6_35_2P_GN_S_package
+
+
+module PowerInput:
+    """USB-C 5V sink + bench supply, OR'd to 5V_BOARD."""
+
+    # External output
+    power_5v_out = new ElectricPower
+
+    # ---- USB-C #1 (5V sink, no PD negotiation) ----
+    usbc_pd = new USB2_0TypeCHorizontalConnector
+    # Connector internally: VBUS → fuse → USB output rail; CC1/CC2 with 5.1kΩ Rd
+
+    # OR Schottky from USB-C VBUS to 5V_BOARD
+    or_pd = new Diode
+    or_pd.lcsc_id = "C22452"     # MDD SS54, 40V 5A SMA
+    usbc_pd.usb.usb_if.buspower.hv ~> or_pd ~> power_5v_out.hv
+    usbc_pd.usb.usb_if.buspower.lv ~ power_5v_out.lv
+
+    # ---- Bench supply input ----
+    bench = new DIBO_DB910_6_35_2P_GN_S_package
+    # Pin 1 = positive when correct polarity; Pin 2 = negative/ground
+
+    # P-FET reverse-polarity protection (AO3401A)
+    rev_fet = new MOSFET
+    rev_fet.lcsc_id = "C15127"   # AO3401A, Vds=-30V, Rds(on)~50mΩ@4.5V
+
+    # Topology: drain on input side, source on load side, gate to bench's
+    # negative terminal via 10kΩ.
+    #   Correct polarity: source charges to +5V, gate stays at GND → Vgs=-5V → ON
+    #   Reverse polarity: source pulled negative; body diode (drain→source)
+    #   reverse-biased → blocks
+    bench.POS ~ rev_fet.drain
+    or_bench = new Diode
+    or_bench.lcsc_id = "C22452"
+    rev_fet.source ~> or_bench ~> power_5v_out.hv
+
+    r_gate = new Resistor
+    r_gate.resistance = 10kohm +/- 5%
+    r_gate.package = "0402"
+    rev_fet.gate ~> r_gate ~> bench.NEG
+
+    bench.NEG ~ power_5v_out.lv
+
+    # ---- 5V_BOARD bulk caps ----
+    # Sized for 3 buck soft-starts simultaneously (~1.2 mC charge): 100µF gives
+    # only ~12 mV droop. 10µF for HF, 100nF for sub-µF noise.
+    cap_bulk_lf = new Capacitor; cap_bulk_lf.capacitance = 100uF +/- 20%; cap_bulk_lf.package = "1206"
+    cap_bulk_mf = new Capacitor; cap_bulk_mf.capacitance = 10uF +/- 20%;  cap_bulk_mf.package = "0805"
+    cap_bulk_hf = new Capacitor; cap_bulk_hf.capacitance = 100nF +/- 20%; cap_bulk_hf.package = "0402"
+    power_5v_out.hv ~> cap_bulk_lf ~> power_5v_out.lv
+    power_5v_out.hv ~> cap_bulk_mf ~> power_5v_out.lv
+    power_5v_out.hv ~> cap_bulk_hf ~> power_5v_out.lv

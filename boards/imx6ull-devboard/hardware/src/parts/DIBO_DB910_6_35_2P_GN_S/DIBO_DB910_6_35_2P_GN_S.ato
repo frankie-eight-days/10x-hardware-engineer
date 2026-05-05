@@ -1,0 +1,20 @@
+import has_datasheet
+import has_designator_prefix
+import has_part_picked
+import is_atomic_part
+import is_auto_generated
+
+component DIBO_DB910_6_35_2P_GN_S_package:
+    # This trait marks this file as auto-generated
+    # If you want to manually change it, remove the trait
+    trait is_auto_generated<system="ato_part", source="easyeda:C395872", date="2026-05-05T03:29:32.509101+00:00", checksum="53c4d6cc56df991a37f86bebe0498c2b62465ceea07c38747124c712c80542fc">
+
+    trait is_atomic_part<manufacturer="DIBO", partnumber="DB910-6.35-2P-GN-S", footprint="CONN-TH_2P-P6.35_DB910-6.35-2P.kicad_mod", symbol="DB910-6.35-2P.kicad_sym", model="CONN-TH_2P-P6.35_DB910-6.35-2P.step">
+    trait has_part_picked::by_supplier<supplier_id="lcsc", supplier_partno="C395872", manufacturer="DIBO", partno="DB910-6.35-2P-GN-S">
+    trait has_designator_prefix<prefix="CN">
+    trait has_datasheet<datasheet="https://www.lcsc.com/datasheet/lcsc_datasheet_2303211600_DORABO-DB910-6-35-2P-GN-S_C395872.pdf">
+
+    # pins (manually named after auto-gen — terminal block is symmetric;
+    # P/N polarity is established by the user when wiring the bench supply.)
+    signal POS ~ pin 1
+    signal NEG ~ pin 2

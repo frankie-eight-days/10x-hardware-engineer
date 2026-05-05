@@ -22,7 +22,7 @@ MPU SAI (I²S)        MAX98357A (TQFN-16, 3×3mm)         Class-D BTL output
                       └─────────────────┘
 ```
 
-3.2 W mono into 4 Ω, 1.8 W into 8 Ω (per datasheet @3.3V VDD). Plenty for a desktop speaker.
+~1.6 W into 4 Ω, ~0.9 W into 8 Ω at VDD = 3.3 V (per datasheet Fig. 1). The 3.2 W / 1.8 W headline numbers in the datasheet are at VDD = 5 V. Plenty for a "hello world" demo speaker.
 
 ## Part choices
 
@@ -45,17 +45,24 @@ MAX98357A wins on simplicity for a "hello world audio" demo.
 
 ### Channel mode: stereo (L+R)/2 mix
 
-MAX98357A `nSD_MODE` pin selects:
+MAX98357A `nSD_MODE` has a **100 kΩ internal pulldown**. Mode bands per datasheet (absolute voltage at the pin, not ratio):
 
-| nSD_MODE voltage | Behaviour |
+| nSD_MODE voltage | Mode |
 |---|---|
-| 0 V | Shutdown (zero current) |
-| 0.16 × VDD | Right channel only |
-| 0.50 × VDD | Stereo (L+R) / 2 sum |
-| 0.84 × VDD | Left channel only |
-| VDD | Stereo (L+R) / 2 sum |
+| < 0.16 V | Shutdown |
+| 0.16 – 0.77 V | Stereo (L+R)/2 sum |
+| 0.77 – 1.4 V | Right channel only |
+| > 1.4 V | Left channel only |
 
-Tying `nSD_MODE` directly to VDD via **100 kΩ pull-up** gives "active, stereo sum" — simplest and matches what `aplay` outputs on the default ALSA path. (i.MX 6ULL SAI is stereo by default; we don't have a separate left/right speaker setup so a sum is what we want.)
+To get **Stereo sum** with VDD = 3.3V, we need the pin between 0.16 V and 0.77 V. With the 100 kΩ internal pulldown, an external pull-up R sets:
+
+```
+V_SD = VDD × 100kΩ / (R_ext + 100kΩ)
+```
+
+For V_SD = 0.30 V (mid-band): R_ext = 1 MΩ. We use **1 MΩ pull-up to VDD**.
+
+(Reviewer caught a bug here — the original 100 kΩ pull-up gave V_SD = 1.65 V which is "Left only", not "Stereo sum". The pin doesn't snap to "VDD = stereo sum" as some Adafruit-derived diagrams suggest; it actually selects "Left only" at full VDD because >1.4 V band wins.)
 
 ### Gain: +9 dB
 
@@ -71,14 +78,13 @@ Tying `nSD_MODE` directly to VDD via **100 kΩ pull-up** gives "active, stereo s
 
 **+9 dB** (100 kΩ to GND) is the default for "loud-but-not-clipping" desktop volume on a typical 4 Ω speaker. Driven by reasoning: 3.3V × 0.9 (Class-D efficiency) → ~3W into 4Ω at clip. With +9 dB and 1Vrms full-scale audio (typical line level), you reach clip near full ALSA volume — exactly the right operating point.
 
-### Output filter: ferrite + 1 nF, twice
+### Output: filterless mode
 
-Class-D switches at ~300 kHz. Without filtering, that energy radiates from the speaker leads as EMI. Datasheet §"Output Filtering" recommends **filterless mode** (no LC filter) for short speaker cables (<1 m), but recommends a small **ferrite + cap** snubber for longer cables.
+Datasheet §"Output Filtering" recommends **filterless mode** for short speaker cables (< 30 cm) — that's our case. OUTP/OUTN go straight to speaker pads.
 
-For a dev board with 30 cm of speaker wire, **ferrite-bead + 1 nF cap** snubber is the right answer:
-- ferrite 600 Ω @ 100 MHz × 2 (commonized with power-tree ferrites — same C1017 part)
-- 1 nF C0G × 2 from each output post-ferrite to GND
-- Damps the BTL switching node before it leaves the PCB
+Earlier draft used ferrite + 1 nF as a "Class-D filter," but the LC corner of 600 Ω@100 MHz / 1 nF lands at ~16 MHz — way above Class-D's 300 kHz switching fundamental. That's an EMI snubber, not a filter; mixing it with a real LC filter is explicitly warned against in the datasheet ("do not use the optional ferrite-bead filter in conjunction with the optional Class-D filter"). So: filterless mode, layout-time mitigations (short twisted-pair speaker wires, GND pour underneath).
+
+If we ever need long speaker cables, drop in **10 µH + 470 pF** per output (proper LC, ~70 kHz corner). v2 if needed.
 
 ### VDD decoupling
 
@@ -106,8 +112,20 @@ module Audio:
     speaker_n  : Electrical
 ```
 
+## Reviewer findings (batch review 2026-05-04)
+
+| Sev | Issue | Status |
+|---|---|---|
+| Critical | nSD_MODE 100kΩ to VDD = "Left only" not stereo sum | **FIXED** — changed to 1MΩ |
+| High | Ferrite + 1nF output is EMI snubber, not Class-D filter | **FIXED** — filterless mode |
+| High | SD_MODE walks through modes during VDD ramp | **NOTED** — chip latches stable mode after VDD settles; if first-article shows the wrong mode at boot, drive nSD_MODE from MPU GPIO (TODO v2) |
+| Medium | Doc claimed 3.2W into 4Ω at 3V3 — actually ~1.6W | **FIXED** in this doc |
+| Medium | i.MX SAI must be master (MAX98357A is always slave) | Note: configure SAI as master in MPU pinmux + device-tree |
+| Low | EP thermal pad — verify ≥4 vias in layout | Layout-time check |
+
 ## Open questions / TODOs
 
 - [ ] Speaker connector (2-pin header) lands in Debug subsystem.
-- [ ] First-article: scope the OUTP/OUTN waveform to confirm filter is doing its job (good blog content).
+- [ ] First-article: scope the OUTP/OUTN waveform to confirm filterless EMI is acceptable.
+- [ ] If first-article shows boot-time mode-walk problems on nSD_MODE, drive from MPU GPIO.
 - [ ] If we ever want stereo, use TAS5825 (more pins, I²C — defer to v2).

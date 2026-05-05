@@ -15,6 +15,7 @@ from "power_tree.ato" import PowerTree
 from "usb_uart.ato" import USBUart
 from "audio.ato" import Audio
 from "microsd.ato" import MicroSD
+from "power_input.ato" import PowerInput
 from "atopile/microchip-lan8742a/microchip-lan8742a.ato" import RMII
 from "atopile/microchip-lan8742a/microchip-lan8742a.ato" import MDIO
 
@@ -33,6 +34,10 @@ module Board:
     vbat_in        = new ElectricPower    # from coin cell in Debug
 
     assert power_5v.voltage within 4.75V to 5.25V
+
+    # ---- Power Input (USB-C PD + bench supply) ----
+    pin_in = new PowerInput
+    pin_in.power_5v_out ~ power_5v
 
     # ---- Power Tree ----
     psu = new PowerTree

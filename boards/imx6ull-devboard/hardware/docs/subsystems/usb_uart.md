@@ -98,8 +98,18 @@ module USBUart:
     uart       : UART_Base          # to MPU UART1 (tx, rx only)
 ```
 
+## Reviewer findings (batch review 2026-05-04)
+
+| Sev | Issue | Status |
+|---|---|---|
+| Critical | "CH340N pinout wrong" — reviewer cited CH340DS1 v3D | **FALSE POSITIVE** — verified against the WCH CH340DS1 v3D §3 (Pin Description) and CH340N SOP-8 diagram on page 1: auto-gen part has correct pinout (UD+=1, UD-=2, GND=3, RTS#=4, VCC=5, TXD=6, RXD=7, V3=8). Reviewer mis-cited the CH340G pinout as if it applied to CH340N. |
+| High | VBUS tied to internal 5V_BOARD = backfeed risk | **FIXED** — only VBUS GND tied to 5V GND now; CH340N runs from 5V_BOARD directly |
+| High | UART1 collides with i.MX boot-ROM Serial Download Protocol | **DOC FIX** — use UART2 in MPU pinmux for console, not UART1. UART1 reserved for SDP recovery. |
+| Medium | 33Ω TX/RX series — fine for console, document | **NOTED** — at 1.5 Mbaud max, 33Ω × 10pF = 330 ps RC, negligible |
+| Low | ESD on USB-C #3 line side | TODO — add TVS to USB connector wrapper |
+
 ## Open questions / TODOs
 
-- [ ] Confirm 33 Ω series doesn't slow USB-12-Mbps edges enough to matter (it shouldn't; USB stays on the D+/D- side of the chip, not the UART side).
 - [ ] Decide TTL header polarity printing on silkscreen.
-- [ ] ESD protection on USB-C #3 — same TVS array as the other USB-Cs (deferred to USB connector wrapper).
+- [ ] ESD on all USB-Cs (D+/D- + CC1/CC2): TVS array (e.g. NXP PESD3V3L4UF or USBLC6-2SC6).
+- [ ] MPU module: pinmux UART2 not UART1.

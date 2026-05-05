@@ -54,10 +54,12 @@ module USBUart:
     chip.UDpos ~ usbc.usb.usb_if.d.p.line
     chip.UDneg ~ usbc.usb.usb_if.d.n.line
 
-    # USB-C VBUS goes to power_5v.hv (CC pulldowns from package make it a sink).
-    # We connect VBUS so CC negotiation works when host applies 5V; we don't
-    # actually consume VBUS power — CH340N is fed from 5V_BOARD.
-    usbc.usb.usb_if.buspower ~ power_5v
+    # USB-C VBUS NOT tied to internal 5V_BOARD (reviewer fix: backfeed risk if
+    # board 5V is higher than host VBUS — current would flow into host port).
+    # CC pulldowns inside the connector package are sufficient for sink
+    # advertisement; CH340N draws its supply from 5V_BOARD instead.
+    # VBUS GND must still be common (USB returns flow through GND):
+    usbc.usb.usb_if.buspower.lv ~ power_5v.lv
 
     # V3 internal LDO decap
     cap_v3 = new Capacitor
