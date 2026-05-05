@@ -2,6 +2,40 @@
 
 Living document. Captures *why* each choice was made so future-me (or a future agent) can re-evaluate when something breaks.
 
+## Known blocker (2026-05-04): atopile picker contradiction on TPS563201 FB divider
+
+**Symptom:** `ato build` fails with `Contradiction: No candidate assignment satisfies the discrete problem system` on `Board.psu.buck_3v3.feedback_divider.chain.resistors[0/1].resistance`. Build worked when only Ethernet + PowerTree were instantiated; fails after adding MPU module.
+
+**Root constraint chain (verified by reading faebryk source):**
+
+`/Users/frankwalsh/.local/share/uv/tools/atopile/lib/python3.14/site-packages/faebryk/library/`:
+
+- `AdjustableRegulator.py` lines 85-95: binds `feedback_divider.v_in = output_voltage = power_out.voltage` and `feedback_divider.v_out = reference_voltage`.
+- `ResistorVoltageDivider.py` lines 133-148 (`_ratio_eq`): asserts `R[1]/(R[0]+R[1]) = v_out/v_in`. So R values fully determine `power_out.voltage` given `reference_voltage`.
+- TI_TPS563201 package: `assert reference_voltage within 0.768V +/- 0.1%`.
+
+**What I tried (all failed identically):**
+
+1. ±5%, ±7%, ±10% tolerance on `buck.output_voltage` assertion
+2. Pin R values directly: `resistance = 33kohm +/- 1%` and `10kohm +/- 1%`
+3. Pin `feedback_divider.current = 76uA +/- 30%`
+4. Pin `feedback_divider.total_resistance = 50kohm +/- 50%`
+5. **Diagnostic:** comment out 2 of 3 bucks → still fails on the remaining one
+6. Pin `lcsc_id = "C25817"` (33kΩ UNI-ROYAL) → "No matching component found" — atopile's part DB doesn't carry C25817
+
+**What I haven't tried (concrete next steps to resume):**
+
+- **Read `faebryk.core.solver.DiscreteSystem`** to understand candidate generation. The error message names R[0]/R[1] as the contradiction site but doesn't say *which* upstream constraint propagated to make their joint domain empty.
+- **Find a 33kΩ 0402 1% LCSC ID that IS in atopile's part DB** — `ato create part` interactive command crashes (OSError); need to drive it via `--search` non-interactively with various candidate C-numbers (FOJAN, YAGEO, BOURNS, KOA), or add the part manually.
+- **Fork `atopile/ti-tps563201`** — copy package into our `parts/` directory, remove the `feedback_divider`-from-`AdjustableRegulator` inheritance, hand-wire R values + footprint refs.
+- **Replace AdjustableRegulator entirely** — wrap our own buck module from scratch using stdlib `MOSFET` + `Inductor` + `Capacitor` and explicit `ResistorVoltageDivider` we control, without any inherited solver coupling.
+
+**Likely-correct hypothesis:** the JLC 0402 1% catalog atopile's picker draws from has a discrete set of values; with all the new MPU consumer constraints loaded into `power_3v3.voltage`, no R pair satisfies the joint domain even with ±10% tolerance. But this is a guess — the contradiction message doesn't expose the constraint set. Need solver source-reading to confirm.
+
+**Status:** all 7 subsystems (Power Input, Power Tree, Ethernet, USB-UART, Audio, microSD, Debug) are ready. MPU module is ready and pinmux-verified against datasheet + EVK DTS. Top-level Board wires everything together. Build only blocks at the picker for FB resistors.
+
+
+
 ## Thesis
 
 Be the first public end-to-end open-stack agent flow that ships a DDR-class Linux dev board, all the way to a shell prompt over the network. Quilter has done DDR closed-source/physics-based; atopile/tscircuit/Diode have done open-source LLM but stayed on 2-layer ESP32 boards. The novel contribution is the open intersection.
