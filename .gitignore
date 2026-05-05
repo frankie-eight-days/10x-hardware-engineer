@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# atopile
+.ato/
+build/
+
+# KiCad backups & autosave
+*.kicad_pcb-bak
+*-backups/
+*.kicad_sch-bak
+fp-info-cache
+*.lck
+
+# Datasheets — too big for git, fetch with scripts/fetch_datasheets.sh
+datasheets/raw/*.pdf
+datasheets/parsed/
+
+# Vector DB
+*.lance/
+mcp/datasheet-server/index/
+
+# Firmware build artifacts
+boards/*/firmware/buildroot/output/
+boards/*/firmware/buildroot/dl/
+boards/*/firmware/uboot/build/
+boards/*/firmware/linux/build/
+*.img
+*.bin
+*.dtb
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
